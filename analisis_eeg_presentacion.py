@@ -338,30 +338,37 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     ax2.set_ylim(-110, len(target_channels) * offset_step + 120)
     ax2.set_xlim(0, 6)
     
-    # Inset Topográfico 10-20 en ax2 para ilustrar la ubicación anatómica occipital
-    ax_topo = ax2.inset_axes([0.62, 0.05, 0.35, 0.40])
-    head_circle = plt.Circle((0, 0), 1.0, color='#f1f5f9', ec='#334155', lw=1.2, zorder=1)
+    # Generar Figura del Montaje Topográfico 10-20 Independiente
+    fig_topo = plt.figure(figsize=(4.5, 4.5), dpi=160)
+    ax_topo = fig_topo.add_subplot(1, 1, 1)
+    head_circle = plt.Circle((0, 0), 1.0, color='#f1f5f9', ec='#334155', lw=1.5, zorder=1)
     ax_topo.add_patch(head_circle)
     # Nariz
-    ax_topo.plot([-0.18, 0.0, 0.18], [0.98, 1.22, 0.98], color='#334155', lw=1.2, zorder=2)
+    ax_topo.plot([-0.18, 0.0, 0.18], [0.98, 1.22, 0.98], color='#334155', lw=1.5, zorder=2)
     # Orejas
-    ax_topo.plot([-1.02, -1.12, -1.02], [-0.15, 0.0, 0.15], color='#334155', lw=1.0, zorder=2)
-    ax_topo.plot([1.02, 1.12, 1.02], [-0.15, 0.0, 0.15], color='#334155', lw=1.0, zorder=2)
+    ax_topo.plot([-1.02, -1.12, -1.02], [-0.15, 0.0, 0.15], color='#334155', lw=1.2, zorder=2)
+    ax_topo.plot([1.02, 1.12, 1.02], [-0.15, 0.0, 0.15], color='#334155', lw=1.2, zorder=2)
     # Electrodos clave de referencia
     ref_elecs = {'Cz': (0, 0), 'Fz': (0, 0.5), 'Pz': (0, -0.45), 'Fp1': (-0.35, 0.78), 'Fp2': (0.35, 0.78)}
     for name, (ex, ey) in ref_elecs.items():
-        ax_topo.scatter(ex, ey, color='#94a3b8', s=16, zorder=3)
-        ax_topo.text(ex, ey + 0.08, name, fontsize=5.5, ha='center', va='bottom', color='#64748b')
+        ax_topo.scatter(ex, ey, color='#94a3b8', s=35, zorder=3)
+        ax_topo.text(ex, ey + 0.08, name, fontsize=7, ha='center', va='bottom', color='#475569')
     # Electrodos Occipitales Destacados
     occ_coords = {'O1': (-0.32, -0.78), 'Oz': (0.0, -0.82), 'O2': (0.32, -0.78)}
     for name, (ex, ey) in occ_coords.items():
-        ax_topo.scatter(ex, ey, color='#b91c1c', s=45, ec='#450a0a', lw=1.0, zorder=4)
-        ax_topo.text(ex, ey - 0.18, name, fontsize=6.8, ha='center', va='top', fontweight='bold', color='#991b1b')
+        ax_topo.scatter(ex, ey, color='#b91c1c', s=100, ec='#450a0a', lw=1.2, zorder=4)
+        ax_topo.text(ex, ey - 0.14, name, fontsize=8.5, ha='center', va='top', fontweight='bold', color='#991b1b')
     ax_topo.set_xlim(-1.3, 1.3)
     ax_topo.set_ylim(-1.3, 1.3)
     ax_topo.set_aspect('equal')
     ax_topo.axis('off')
-    ax_topo.set_title("Montaje 10-20 (Polo Occipital)", fontsize=7.2, fontweight='bold', color='#1e293b', pad=1)
+    ax_topo.set_title("Sistema Internacional 10-20 (Polo Occipital)", fontsize=9.5, fontweight='bold', color='#0f2942', pad=8)
+    
+    f_topo_path = os.path.join(output_dir, "fig1_topo_montaje.png")
+    fig_topo.savefig(f_topo_path, dpi=200, bbox_inches='tight')
+    plt.close(fig_topo)
+    saved_files.append(f_topo_path)
+    print(f" -> Guardado: {f_topo_path}")
     
     # Determinar rango simétrico unificado para PC1
     max_amp = max(np.max(np.abs(pc1_open[:len(t_plot)] * 1e6)), np.max(np.abs(pc1_closed[:len(t_plot)] * 1e6)))
@@ -586,6 +593,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
         return filename
 
     img1 = b64_img("fig1_pca_preprocesamiento.png")
+    img_topo = b64_img("fig1_topo_montaje.png")
     img2 = b64_img("fig2_psd_espectro_alfa.png")
     img3 = b64_img("fig3_espectrograma_stft.png")
     img4 = b64_img("fig4_clustering_kmeans.png")
@@ -624,24 +632,6 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
             display: flex;
             flex-direction: column;
         }}
-        header {{
-            height: 50px;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            background: #ffffff;
-            z-index: 100;
-        }}
-        .univ-title {{
-            font-size: 0.86rem;
-            font-weight: 700;
-            color: var(--primary-navy);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }}
-        .controls-area {{ display: flex; align-items: center; gap: 10px; }}
         .btn {{
             background: #ffffff;
             border: 1px solid var(--border-color);
@@ -652,30 +642,6 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
             font-size: 0.8rem;
             font-weight: 600;
             transition: all 0.15s ease;
-        }}
-        .btn:hover {{
-            background: #f8fafc;
-            border-color: var(--secondary-blue);
-            color: var(--secondary-blue);
-        }}
-        .btn-notes {{
-            background: #f1f5f9;
-            border-color: #94a3b8;
-            color: var(--text-main);
-        }}
-        .btn-notes:hover {{
-            background: var(--primary-navy);
-            color: #ffffff;
-            border-color: var(--primary-navy);
-        }}
-        .slide-counter {{
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.82rem;
-            color: var(--text-muted);
-            padding: 4px 8px;
-            background: #f1f5f9;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
         }}
         main {{
             flex: 1;
@@ -872,45 +838,16 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
             padding: 2px 7px;
             border-radius: 4px;
         }}
-        footer {{
-            height: 32px;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.72rem;
-            color: var(--text-muted);
-            background: #ffffff;
-            border-top: 1px solid var(--border-color);
-        }}
-        .kb-badge {{
-            background: #e2e8f0;
-            padding: 1px 5px;
-            border-radius: 3px;
-            color: var(--primary-navy);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.68rem;
-        }}
+
     </style>
 </head>
 <body>
-    <header>
-        <div class="univ-title">EVALUACIÓN FINPROCESAMIENTO AVANZADO DE SEÑALES & MINERÍA DE SERIES TEMPORALES</div>
-        <div class="controls-area">
-            <span class="slide-counter" id="slideNum">1 / 6</span>
-            <button class="btn" onclick="prevSlide()">[Anterior]</button>
-            <button class="btn" onclick="nextSlide()">[Siguiente]</button>
-            <button class="btn btn-notes" onclick="toggleSpeakerNotes()">[Notas de Orador - N]</button>
-            <button class="btn" onclick="toggleFullScreen()">[Pantalla Completa - F]</button>
-        </div>
-    </header>
+
 
     <main>
         <!-- DIAPOSITIVA 1 -->
         <section class="slide active">
-            <div class="slide-header">
-                <span class="badge">PROYECTO FINAL (VIDEO DE 9 MINUTOS)</span>
-                <h1>Caracterización Espectral y Agrupamiento No Supervisado del Ritmo Alfa Occipital en EEG</h1>
+            <div class="slide-header">                <h1>Caracterización Espectral y Agrupamiento No Supervisado del Ritmo Alfa Occipital en EEG</h1>
                 <p class="subtitle">Estudio de Caso Intra-Sujeto: Filtrado de Fase Cero, Combinación Espacial por PCA, Estimación Welch/STFT y Clustering K-Means</p>
             </div>
             <div class="slide-body">
@@ -932,15 +869,16 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
                         <p>Registros basales del Sujeto S001 de PhysioNet EEGMMIDB (64 canales, Fs = 160 Hz) en reposo continuo con Ojos Abiertos (Run 1) y Ojos Cerrados (Run 2).</p>
                     </div>
                 </div>
-                <div class="image-container" style="flex-direction: column; text-align: center; gap: 12px; background: #f8fafc;">
-                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.80rem; color: var(--primary-navy); border: 1px solid #cbd5e1; padding: 12px 14px; border-radius: 6px; background: #ffffff; width: 88%; text-align: left; line-height: 1.5;">
-                        <strong style="color: var(--secondary-blue);">FLUJO DEL PIPELINE COMPUTACIONAL</strong><br><br>
+                <div class="image-container" style="flex-direction: column; text-align: center; gap: 8px; background: #ffffff;">
+                    <img src="{img_topo}" alt="Sistema Internacional 10-20" style="max-height: 200px; width: auto; object-fit: contain;">
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--primary-navy); border: 1px solid #cbd5e1; padding: 10px 12px; border-radius: 6px; background: #f8fafc; width: 92%; text-align: left; line-height: 1.45;">
+                        <strong style="color: var(--secondary-blue);">FLUJO DEL PIPELINE COMPUTACIONAL</strong><br>
                         1. <strong>Señales Crudas:</strong> PhysioNet EDF (S001, 160 Hz)<br>
-                        2. <strong>Filtro Pasa-Banda:</strong> FIR Fase Cero (1-40 Hz) + Recorte Dinámico (3.0s)<br>
-                        3. <strong>Combinación Espacial:</strong> PCA en electrodos occipitales (O1, Oz, O2)<br>
+                        2. <strong>Filtro Pasa-Banda:</strong> FIR Fase Cero (1-40 Hz) + Recorte (3.0s)<br>
+                        3. <strong>Combinación Espacial:</strong> PCA en occipitales (O1, Oz, O2)<br>
                         4. <strong>Análisis Espectral:</strong> Welch PSD & STFT continua (hop size 0.25s)<br>
-                        5. <strong>Minería Temporal:</strong> 54 Épocas disjuntas (2.0s) & Potencia Relativa (Alfa / Beta)<br>
-                        6. <strong>Clustering:</strong> K-Means (k=2), ARI, Silhouette & Matriz de Contingencia
+                        5. <strong>Minería Temporal:</strong> 54 Épocas disjuntas (2.0s) & Potencia Relativa<br>
+                        6. <strong>Clustering:</strong> K-Means (k=2) & Validación (ARI/Silhouette)
                     </div>
                 </div>
             </div>
@@ -957,9 +895,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
 
         <!-- DIAPOSITIVA 2 -->
         <section class="slide">
-            <div class="slide-header">
-                <span class="badge">PROCESAMIENTO ESPACIAL & FILTRADO</span>
-                <h2>Preprocesamiento y Combinación Espacial mediante PCA</h2>
+            <div class="slide-header">                <h2>Preprocesamiento y Combinación Espacial mediante PCA</h2>
                 <p class="subtitle">Acondicionamiento FIR de fase cero y proyección de covarianza en sensores occipitales (O1, Oz, O2)</p>
             </div>
             <div class="slide-body">
@@ -997,9 +933,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
 
         <!-- DIAPOSITIVA 3 -->
         <section class="slide">
-            <div class="slide-header">
-                <span class="badge">DOMINIO DE LA FRECUENCIA & BIOMARCADORES</span>
-                <h2>Análisis Espectral y Cuantificación del Efecto Berger</h2>
+            <div class="slide-header">                <h2>Análisis Espectral y Cuantificación del Efecto Berger</h2>
                 <p class="subtitle">Estimación consistente de la PSD mediante método de Welch y caracterización de dinámica periódica vs. 1/f</p>
             </div>
             <div class="slide-body">
@@ -1037,9 +971,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
 
         <!-- DIAPOSITIVA 4 -->
         <section class="slide">
-            <div class="slide-header">
-                <span class="badge">REPRESENTACIONES TIEMPO-FRECUENCIA</span>
-                <h2>Análisis Tiempo-Frecuencia Dinámico mediante STFT Discreta</h2>
+            <div class="slide-header">                <h2>Análisis Tiempo-Frecuencia Dinámico mediante STFT Discreta</h2>
                 <p class="subtitle">Compromiso de Gabor-Heisenberg y seguimiento continuo de la persistencia espectral del ritmo alfa</p>
             </div>
             <div class="slide-body">
@@ -1077,9 +1009,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
 
         <!-- DIAPOSITIVA 5 -->
         <section class="slide">
-            <div class="slide-header">
-                <span class="badge">MINERÍA DE SERIES TEMPORALES & APRENDIZAJE NO SUPERVISADO</span>
-                <h2>Minería de Series Temporales y Agrupamiento con K-Means</h2>
+            <div class="slide-header">                <h2>Minería de Series Temporales y Agrupamiento con K-Means</h2>
                 <p class="subtitle">Segmentación en épocas disjuntas, espacio composicional de Potencia Relativa y validación de clústeres</p>
             </div>
             <div class="slide-body">
@@ -1117,9 +1047,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
 
         <!-- DIAPOSITIVA 6 -->
         <section class="slide">
-            <div class="slide-header">
-                <span class="badge">SÍNTESIS & PERSPECTIVAS</span>
-                <h2>Conclusiones</h2>
+            <div class="slide-header">                <h2>Conclusiones</h2>
                 <p class="subtitle">Integración de herramientas del curso, consideraciones metodológicas y proyección a BCI</p>
             </div>
             <div class="slide-body full-width">
@@ -1169,10 +1097,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
         <div class="notes-text" id="speakerNotesText"></div>
     </div>
 
-    <footer>
-        <div>PROCESAMIENTO AVANZADO DE SEÑALES - FCEN</div>
-        <div>Navegación: <span class="kb-badge">[◀]</span> / <span class="kb-badge">[▶]</span> o <span class="kb-badge">[Espacio]</span> | Notas: <span class="kb-badge">[N]</span> | Pantalla Completa: <span class="kb-badge">[F]</span></div>
-    </footer>
+
 
     <script>
         let currentSlide = 0;
