@@ -1,7 +1,7 @@
 # Guion de Exposición Oral (Video Explicativo de 9 Minutos)
 
 **Materia:** Procesamiento Avanzado de Señales y Minería de Series Temporales (UBA)  
-**Tema:** Caracterización Espectral y Agrupamiento No Supervisado del Ritmo Alfa Occipital en EEG (Estudio de Caso Intra-Sujeto)  
+**Tema:** Caracterización Espectral y Agrupamiento No Supervisado del Ritmo Alfa Occipital en EEG  
 **Calibración de Tiempo:** 9 minutos netos para video explicativo asincrónico  
 
 ---
@@ -12,15 +12,15 @@
 
 **Texto a exponer:**
 
-En este trabajo presento un pipeline computacional para el análisis y caracterización cuantitativa del ritmo alfa occipital en electroencefalografía (EEG), utilizando un enfoque no supervisado como estudio de caso intra-sujeto.
+En este trabajo presento un pipeline para el análisis y caracterización del ritmo alfa occipital en electroencefalografía (EEG), utilizando un enfoque no supervisado.
 
 La metodología se estructura en tres etapas funcionales integradas:
 
-Primero, abordamos el **preprocesamiento y reducción espacial**: implementamos un filtrado digital FIR de fase cero para evitar distorsiones temporales, realizamos una combinación espacial óptima mediante Análisis de Componentes Principales (PCA) y construimos representaciones tiempo-frecuencia continuas con la Transformada de Fourier de Tiempo Reducido (STFT).
+Primero, abordamos el **preprocesamiento y reducción espacial**: implementamos un filtrado digital pasa-banda FIR (Finite Impulse Response) para evitar distorsiones temporales, realizamos una combinación espacial óptima mediante Análisis de Componentes Principales (PCA) y construimos representaciones tiempo-frecuencia continuas con la Transformada de Fourier de Tiempo Reducido (STFT, por sus siglas en inglés).
 
 Segundo, aplicamos técnicas de **minería de series temporales**: segmentamos el registro en 54 épocas temporales disjuntas e independientes, extrajimos características espectrales relativas robustas y evaluamos el agrupamiento con K-Means mediante métricas no supervisadas formales como el Adjusted Rand Index y el Silhouette Score.
 
-Tercero, **contextualizamos los resultados biofísicamente**: caracterizando cuantitativamente el ritmo alfa y el Efecto Berger sobre registros basales del sujeto S001 de PhysioNet EEGMMIDB, adquiridos a 160 Hz en condiciones de ojos abiertos y ojos cerrados.
+Tercero, **contextualizamos los resultados biofísicamente**: caracterizando el ritmo alfa y el Efecto Berger sobre registros basales de la base de datos pública PhysioNet EEGMMIDB, adquiridos a 160 Hz en condiciones de ojos abiertos y ojos cerrados.
 
 ---
 
@@ -32,7 +32,7 @@ Tercero, **contextualizamos los resultados biofísicamente**: caracterizando cua
 
 La primera etapa del pipeline consiste en el preprocesamiento de la señal.
 
-Las señales de EEG tienen amplitudes muy pequeñas, del orden de los microvoltios, por lo que son especialmente sensibles al ruido y a diferentes tipos de interferencias. Para acondicionarlas se aplicó un filtro FIR pasa-banda entre 1 y 40 Hz de fase cero bidireccional, preservando la fase original de las oscilaciones neuronales.
+Las señales de EEG tienen amplitudes muy pequeñas, del orden de los microvoltios, por lo que son especialmente sensibles al ruido y a diferentes tipos de interferencias. Para acondicionarlas se aplicó un filtro FIR (Finite Impulse Response) pasa-banda entre 1 y 40 Hz aplicado en ambas direcciones temporales, de modo que las distorsiones de fase se cancelan y se preserva la alineación temporal original de los potenciales eléctricos.
 
 Para evitar los transitorios de respuesta impulsional en los extremos del registro generados por el pasa-alto de 1 Hz, se recortaron tres segundos al inicio y al final de cada archivo.
 
@@ -78,7 +78,7 @@ En la Figura 3 calibramos el rango dinámico en 36 decibelios para visualizar ta
 
 En el panel superior de ojos abiertos se aprecia un espectro desincronizado y homogéneo a lo largo de los 55 segundos.
 
-En el panel inferior de ojos cerrados se observa una banda prominente y continua en torno a los 10 Hz. Si bien el alto solapamiento produce un suavizado visual, es posible detectar sutiles atenuaciones transitorias de potencia (claramente señaladas con marcadores rojos en los segundos 12, 26 y 46), vinculadas a variaciones dinámicas del reposo que analizaremos en la etapa de clustering.
+En el panel inferior de ojos cerrados se observa una banda prominente y continua en torno a los 10 Hz. Si bien el alto solapamiento produce un suavizado visual, es posible detectar sutiles atenuaciones transitorias de potencia en determinados instantes, vinculadas a variaciones dinámicas del reposo que analizaremos en la etapa de clustering.
 
 ---
 

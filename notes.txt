@@ -1,0 +1,75 @@
+D1
+
+-> titulo "Caracterización Espectral y Agrupamiento No Supervisado del Ritmo Alfa Occipital en EEG" OK
+
+-> Subtitulo "Estudio de Caso Intra-Sujeto: Filtrado de Fase Cero, Combinación Espacial por PCA, Estimación Welch/STFT y Clustering K-Means": No me gusta lo de "Caso Intra-Sujeto", "Filtrado de fase cero". lo de intra sujeto lo sacaria, lo de "fase cero" lo llevaria a "pasa banda" o lo que corresponda.
+
+-> "Diseñar e implementar un pipeline computacional reproducible para caracterizar cuantitativamente el ritmo alfa occipital (Efecto Berger) y evaluar la discriminabilidad de estados de reposo visual mediante agrupamiento no supervisado en un estudio de caso intra-sujeto." : sacaría la palabra "computacional" y "cuantitativamente". la idea en general esta bien, es mas sobre las palabras lo que no me cierra. el "estudo de caso intra-sujeto" no me gusta mucho tampoco.
+
+-> "2. Etapas Metodológicas Integradas
+Preprocesamiento & Espacio: Filtrado digital FIR pasa-banda de fase cero, combinación espacial por PCA y análisis tiempo-frecuencia (STFT).
+Minería de Series Temporales: Segmentación temporal en 54 épocas disjuntas, atributos de Potencia Relativa y clustering K-Means.
+Contextualización Biofísica: Cuantificación del ritmo alfa occipital, Efecto Berger y dinámica tálamo-cortical.": pondría al lado de FIR lo que significa, lo mismo con STFT o a lo sumo poner fourier. el resto ok.
+
+-> "3. Conjunto de Datos & Protocolo Experimental
+Registros basales del Sujeto S001 de PhysioNet EEGMMIDB (64 canales, Fs = 160 Hz) en reposo continuo con Ojos Abiertos (Run 1) y Ojos Cerrados (Run 2).": esta muy buena esta parte y es importante. pero buscaria la manera de no poner directamente que estamos trabajando solo con los datos del sujeto S001 porque parece que analizamos muy pocos datos, podemos omitir ese comentario.
+
+-> "FLUJO DEL PIPELINE COMPUTACIONAL
+1. Señales Crudas: PhysioNet EDF (S001, 160 Hz)
+2. Filtro Pasa-Banda: FIR Fase Cero (1-40 Hz) + Recorte (3.0s)
+3. Combinación Espacial: PCA en occipitales (O1, Oz, O2)
+4. Análisis Espectral: Welch PSD & STFT continua (hop size 0.25s)
+5. Minería Temporal: 54 Épocas disjuntas (2.0s) & Potencia Relativa
+6. Clustering: K-Means (k=2) & Validación (ARI/Silhouette)" pondría simplemente "Flujo del Pipeline" / tambien sacaria lo de S001 / el resto esta ok
+
+------------------------------------------
+
+D2
+
+-> titulo "Preprocesamiento y Combinación Espacial mediante PCA": esta ok
+
+-> subtitulo "Acondicionamiento FIR de fase cero y proyección de covarianza en sensores occipitales (O1, Oz, O2)": esta bien si decimos lo que es FIR en algun momento.
+
+-> "1. Filtrado FIR de Fase Cero & Recorte de Bordes
+Filtro digital pasa-banda 1.0 - 40.0 Hz bidireccional no causal (phase='zero') que preserva la alineación temporal de los potenciales bioeléctricos. Se descartan 3.0 s en ambos extremos para mitigar transitorios de borde del pasa-alto.": lo de "bidireccional no causal (fase zero)" me gustaría que este de otra forma. lo de potenciales bioeléctricos veria de ponerlo directamente como potenciales electricos.
+
+-> "2. Combinación Espacial por PCA Local
+Los canales adyacentes O1, Oz y O2 registran la proyección común del dipolo occipital por conducción de volumen. PCA extrae el autovector dominante que maximiza la varianza total combinada:
+
+PC1 = 0.585*O1 + 0.568*Oz + 0.579*O2 | Varianza: 90.61%": esta ok, solo checkearia de que este bien la formula.
+
+-> "3. Fundamento Matemático & Alcance
+Al tener pesos espacialmente simétricos (~1/√3 ≈ 0.577), PC1 actúa como un promedio ponderado óptimo en varianza. En esquemas supervisados multicanal completos, la discriminabilidad inter-condición se aborda mediante Common Spatial Patterns (CSP).": no me gusta el titulo "Fundamento Matemático & Alcance", quizas sacaría el "& Alcance" / por otro lado, esto "En esquemas supervisados multicanal completos, la discriminabilidad inter-condición se aborda mediante Common Spatial Patterns (CSP)" suena muy complicado, veería de cambiar las palabras.
+
+-> los graficos en general bien
+
+-------------------
+
+D3
+
+-> titulo "Análisis Espectral y Cuantificación del Efecto Berger" esta ok
+
+-> subtitulo "Estimación consistente de la PSD mediante método de Welch y caracterización de dinámica periódica vs. 1/f": es un poco confuso quizas, que es PSD?, cual es el metodo de Welch? si esta descrito en el guion OK, sino tener cuidado con interpretabilidad.
+
+-> resto ok
+
+-> de la figura, parte izquierda hay que sacar la flecha roja que opunta hacia el pico y tambien el recuadro que dice "Pico Alfa: .... | Radio berger ....". El resto ok
+
+----
+
+D4
+
+-> titulo "Análisis Tiempo-Frecuencia Dinámico mediante STFT Discreta" ok
+
+-> subtitulo "Compromiso de Gabor-Heisenberg y seguimiento continuo de la persistencia espectral del ritmo alfa" okay solamente si esta explicado en el guion lo que es "Compromiso de Gabor-Heisenberg" sino no.
+
+-> "1. Dinámica No Estacionaria del EEG
+La Transformada de Fourier global oculta la modulación temporal. La STFT discreta permite rastrear la persistencia y transitorios dinámicos de las oscilaciones neuronales a lo largo de la adquisición." OK
+
+-> "2. Formulación Discreta & Parámetros de Análisis
+Ventana Hann de N = 320 muestras (Tw = 2.0 s) con avance R = 40 muestras (Δt_hop = 0.25 s, solapamiento 87.5%):
+
+X[m, k] = ∑_{n=0}^{N-1} x[n + mR] · w[n] · e^{-j 2π k n / N}" OK si esta explicado lo que es la ventana de Hann al menos un poco en el guion
+
+-> "3. Interpretación de los Espectrogramas
+Ojos Abiertos muestra desincronización basal; Ojos Cerrados evidencia activación continua en 10 Hz con atenuaciones transitorias (marcadas en rojo) en t ∈ {12, 26, 46} s asociadas a micro-variaciones del reposo." Esto ya directamente tiene problemas, habla de puntos marcados en rojo que ya sacamos de la figura. hay que cambiar esto -> IMPORTANTE. El grafico OK -> pero revisar titulos de las figuras y sacarles los colores, son feos (a los titulos de las figuras)
