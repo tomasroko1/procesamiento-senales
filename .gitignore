@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv
+env/
+venv/
+
+# Datos crudos EEG pesados (el script los descarga automáticamente)
+*.edf
+*.fif
+
+# Sistema
+.DS_Store
+Thumbs.db
