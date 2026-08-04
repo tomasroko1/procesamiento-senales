@@ -348,28 +348,37 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     # Orejas
     ax_topo.plot([-1.02, -1.12, -1.02], [-0.15, 0.0, 0.15], color='#334155', lw=1.2, zorder=2)
     ax_topo.plot([1.02, 1.12, 1.02], [-0.15, 0.0, 0.15], color='#334155', lw=1.2, zorder=2)
+
     # Electrodos clave de referencia
-    ref_elecs = {'Cz': (0, 0), 'Fz': (0, 0.5), 'Pz': (0, -0.45), 'Fp1': (-0.35, 0.78), 'Fp2': (0.35, 0.78)}
+    ref_elecs = {'Cz': (0, 0), 'Fz': (0, 0.5), 'Pz': (0, -0.45)}
     for name, (ex, ey) in ref_elecs.items():
         ax_topo.scatter(ex, ey, color='#94a3b8', s=35, zorder=3)
-        ax_topo.text(ex, ey + 0.08, name, fontsize=7, ha='center', va='bottom', color='#475569')
-    # Electrodos Occipitales Destacados
+        ax_topo.text(ex, ey + 0.045, name, fontsize=7, ha='center', va='bottom', color='#475569')
+
+    # Electrodos Frontales (Texto por debajo del círculo para evitar colisión con el borde superior)
+    fp_elecs = {'Fp1': (-0.35, 0.78), 'Fp2': (0.35, 0.78)}
+    for name, (ex, ey) in fp_elecs.items():
+        ax_topo.scatter(ex, ey, color='#94a3b8', s=35, zorder=3)
+        ax_topo.text(ex, ey - 0.045, name, fontsize=7, ha='center', va='top', color='#475569')
+
+    # Electrodos Occipitales Destacados (Texto por encima del círculo para evitar colisión con el borde inferior)
     occ_coords = {'O1': (-0.32, -0.78), 'Oz': (0.0, -0.82), 'O2': (0.32, -0.78)}
     for name, (ex, ey) in occ_coords.items():
         ax_topo.scatter(ex, ey, color='#b91c1c', s=100, ec='#450a0a', lw=1.2, zorder=4)
-        ax_topo.text(ex, ey - 0.14, name, fontsize=8.5, ha='center', va='top', fontweight='bold', color='#991b1b')
+        ax_topo.text(ex, ey + 0.055, name, fontsize=8.5, ha='center', va='bottom', fontweight='bold', color='#991b1b')
+
     ax_topo.set_xlim(-1.3, 1.3)
     ax_topo.set_ylim(-1.3, 1.3)
     ax_topo.set_aspect('equal')
     ax_topo.axis('off')
     ax_topo.set_title("Sistema Internacional 10-20 (Polo Occipital)", fontsize=9.5, fontweight='bold', color='#0f2942', pad=8)
-    
+
     f_topo_path = os.path.join(output_dir, "fig1_topo_montaje.png")
     fig_topo.savefig(f_topo_path, dpi=200, bbox_inches='tight')
     plt.close(fig_topo)
     saved_files.append(f_topo_path)
-    print(f" -> Guardado: {f_topo_path}")
-    
+    print(f" -> Guardado: {f_topo_path}")    
+
     # Determinar rango simétrico unificado para PC1
     max_amp = max(np.max(np.abs(pc1_open[:len(t_plot)] * 1e6)), np.max(np.abs(pc1_closed[:len(t_plot)] * 1e6)))
     ylim_unified = float(np.ceil(max_amp / 50.0) * 50.0 + 30.0)
@@ -403,54 +412,45 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     # -------------------------------------------------------------------------
     fig2, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(12, 5.0), dpi=160, gridspec_kw={'width_ratios': [1.2, 1]})
     mask_f = np.logical_and(freqs >= 1.0, freqs <= 35.0)
-    
+
     psd_open_uv = psd_open * 1e12
     psd_closed_uv = psd_closed * 1e12
-    
+
     # Panel A: Escala Lineal (Realce del Efecto Berger)
     ax_lin.plot(freqs[mask_f], psd_open_uv[mask_f], label='Ojos Abiertos (ERD)', color='#0284c7', lw=1.9)
     ax_lin.plot(freqs[mask_f], psd_closed_uv[mask_f], label='Ojos Cerrados (ERS Alfa)', color='#b91c1c', lw=2.2)
     ax_lin.axvspan(8.0, 12.0, color='#fef3c7', alpha=0.65, label=r'Banda Alfa ($8 - 12$ Hz)')
-    
-    idx_alpha = np.logical_and(freqs >= 8.0, freqs <= 12.0)
-    f_peak = freqs[idx_alpha][np.argmax(psd_closed_uv[idx_alpha])]
-    p_peak = np.max(psd_closed_uv[idx_alpha])
-    ax_lin.annotate(f'Pico Alfa: {f_peak:.1f} Hz\n(Ratio Berger: 16.00x)', 
-                    xy=(f_peak, p_peak), xytext=(f_peak + 3.2, p_peak * 0.85),
-                    arrowprops=dict(facecolor='#991b1b', shrink=0.08, width=1.3, headwidth=6),
-                    fontweight='bold', color='#991b1b', fontsize=9.2,
-                    bbox=dict(boxstyle="round,pad=0.35", fc="#fff1f2", ec="#f43f5e", lw=1))
-    
+
     ax_lin.set_title("Densidad Espectral de Potencia de Welch (Escala Lineal)\n" + r"[Espaciado $\Delta f = 0.5\ \mathrm{Hz}$ | Res. Rayleigh $\approx 0.75\ \mathrm{Hz}$]", 
-                      fontweight='bold', color='#0f2942', fontsize=10.5)
+                    fontweight='bold', color='#0f2942', fontsize=10.5)
     ax_lin.set_xlabel("Frecuencia (Hz)")
     ax_lin.set_ylabel(r"PSD ($\mu\mathrm{V}^2/\mathrm{Hz}$)")
     ax_lin.set_xlim(1, 35)
     ax_lin.legend(loc='upper right', framealpha=0.92, fontsize=9.2)
-    
+
     # Panel B: Escala Semilogarítmica en dB (Dinámica Aperiódica 1/f y Banda Ancha)
     psd_open_db = 10 * np.log10(psd_open_uv + 1e-12)
     psd_closed_db = 10 * np.log10(psd_closed_uv + 1e-12)
-    
+
     ax_log.plot(freqs[mask_f], psd_open_db[mask_f], label='Ojos Abiertos (1/f aperiódico)', color='#0284c7', lw=1.8)
     ax_log.plot(freqs[mask_f], psd_closed_db[mask_f], label=r'Ojos Cerrados ($1/f$ + Pico Alfa)', color='#b91c1c', lw=2.0)
     ax_log.axvspan(8.0, 12.0, color='#fef3c7', alpha=0.65)
     ax_log.axvspan(13.0, 30.0, color='#e0f2fe', alpha=0.45, label=r'Banda Beta ($13 - 30$ Hz)')
-    
+
     ax_log.set_title(r"PSD en Escala Logarítmica ($\mathrm{dB}\ [\mu\mathrm{V}^2/\mathrm{Hz}]$)" + "\n[Componente Oscilatoria sobre Fondo Aperiódico]", 
-                     fontweight='bold', color='#0f2942', fontsize=10.5)
+                    fontweight='bold', color='#0f2942', fontsize=10.5)
     ax_log.set_xlabel("Frecuencia (Hz)")
     ax_log.set_ylabel(r"Potencia ($\mathrm{dB}$)")
     ax_log.set_xlim(1, 35)
     ax_log.legend(loc='upper right', framealpha=0.92, fontsize=9.0)
-    
+
     plt.tight_layout()
     f2_path = os.path.join(output_dir, "fig2_psd_espectro_alfa.png")
     fig2.savefig(f2_path, dpi=200, bbox_inches='tight')
     plt.close(fig2)
     saved_files.append(f2_path)
     print(f" -> Guardado: {f2_path}")
-    
+
     # -------------------------------------------------------------------------
     # Figura 3: STFT Espectrogramas Comparativos Continuos (Rango Dinámico Calibrado)
     # -------------------------------------------------------------------------
