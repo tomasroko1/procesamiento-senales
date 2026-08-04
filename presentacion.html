@@ -442,28 +442,29 @@
         <!-- DIAPOSITIVA 6 -->
         <section class="slide">
             <div class="slide-header">                <h2>Conclusiones</h2>
-                <p class="subtitle">Integración de herramientas del curso, consideraciones metodológicas y proyección a BCI</p>
+                <p class="subtitle">Conclusiones y Trabajos Futuros</p>
             </div>
             <div class="slide-body full-width">
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; height: 100%;">
                     <div class="content-box" style="display:flex; flex-direction:column; justify-content:space-between;">
                         <div>
-                            <h4>1. Preprocesamiento & Reducción Espacial</h4>
-                            <p style="margin-top: 6px;">El acondicionamiento FIR de fase cero y la proyección por PCA sintetizaron el <strong>90.61% de la varianza</strong> de los electrodos occipitales sin distorsión temporal, actuando como un promedio espacial coherente óptimo.</p>
+                        <h4>1. Preprocesamiento & Reducción Espacial</h4>
+                        <p style="margin-top: 6px;">El filtrado pasabanda aisló la actividad alfa y el PCA sintetizó el <strong>90.61% de la varianza</strong> de los electrodos occipitales en un promedio espacial óptimo.</p>
                         </div>
                         <div style="font-size: 0.78rem; color: var(--secondary-blue); font-weight: 700;">Acondicionamiento Óptimo</div>
                     </div>
                     <div class="content-box box-crimson" style="display:flex; flex-direction:column; justify-content:space-between;">
                         <div>
-                            <h4>2. Minería de Series Temporales</h4>
-                            <p style="margin-top: 6px;">El espacio composicional de Potencia Relativa en 54 épocas disjuntas permitió a K-Means particionar los estados con <strong>ARI = 0.786</strong> y <strong>Silhouette = 0.487</strong> de forma consistente frente a la dinámica biológica.</p>
+                            <h4>2. Clustering no supervisado</h4>
+                            <p style="margin-top: 6px;">K-Means identificó de forma consistente los estados de ojos abiertos y cerrados, alcanzando un ARI de 0.786 y un coeficiente Silhouette de 0.487.
+</p>
                         </div>
                         <div style="font-size: 0.78rem; color: var(--accent-crimson); font-weight: 700;">Agrupamiento No Supervisado</div>
                     </div>
                     <div class="content-box box-navy" style="display:flex; flex-direction:column; justify-content:space-between;">
                         <div>
-                            <h4>3. Desafíos & Proyección a BCI</h4>
-                            <p style="margin-top: 6px;">Para escalar hacia BCI online se requiere migrar a filtros causales de baja latencia, incorporar esquemas inter-sujeto (LOSO), calibrar la frecuencia individual alfa (IAF) y agregar limpieza de artefactos por ICA.</p>
+                            <h4>3. Limitaciones y perspectivas</h4>
+                            <p style="margin-top: 6px;">La validación en un mayor número de sujetos, el fortalecimiento del preprocesamiento y la adaptación del pipeline al procesamiento en tiempo real representan los principales pasos para extender esta metodología.</p>
                         </div>
                         <div style="font-size: 0.78rem; color: var(--primary-navy); font-weight: 700;">Validación & Escalabilidad</div>
                     </div>
