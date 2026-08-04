@@ -415,14 +415,15 @@
 
         <!-- DIAPOSITIVA 5 -->
         <section class="slide">
-            <div class="slide-header">                <h2>Minería de Series Temporales y Agrupamiento con K-Means</h2>
-                <p class="subtitle">Segmentación en épocas disjuntas, espacio composicional de Potencia Relativa y validación de clústeres</p>
+            <div class="slide-header">                <h2>Agrupamiento de épocas mediante K-Means
+</h2>
+                <p class="subtitle">Segmentación temporal, extracción de características y evaluación del agrupamiento.</p>
             </div>
             <div class="slide-body">
                 <div class="text-content">
                     <div class="content-box">
                         <h4>1. Segmentación en 54 Épocas Temporales Disjuntas (2.0 s)</h4>
-                        <p>Se divide la señal en ventanas disjuntas de 320 muestras (sin solapamiento temporal para clustering). Se estima el espectro por época mediante Periodograma de Hann (Δf = 0.5 Hz).</p>
+                        <p>La señal se dividió en 54 épocas de 2 s y se estimó el espectro de potencia de cada una mediante un periodograma de Hann</p>
                     </div>
                     <div class="content-box box-navy">
                         <h4>2. Espacio Composicional & Estandarización</h4>
@@ -451,48 +452,64 @@
             </div>
         </section>
 
-        <!-- DIAPOSITIVA 6 -->
-        <section class="slide">
-            <div class="slide-header">                <h2>Conclusiones</h2>
-                <p class="subtitle">Conclusiones y Trabajos Futuros</p>
-            </div>
-            <div class="slide-body full-width">
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; height: 100%;">
-                    <div class="content-box" style="display:flex; flex-direction:column; justify-content:space-between;">
-                        <div>
+            <!-- DIAPOSITIVA 6 -->
+<section class="slide">
+    <div class="slide-header">
+        <h2>Conclusiones</h2>
+        <p class="subtitle">Conclusiones y Trabajos Futuros</p>
+    </div>
+    <div class="slide-body full-width">
+        <!-- Grid principal: Dividido en 2 columnas de igual ancho (50% / 50%) -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; height: 100%; align-items: center;">
+            
+            <!-- Columna Izquierda: Cajas apiladas verticalmente -->
+            <div style="display: flex; flex-direction: column; gap: 1rem; justify-content: center; height: 100%;">
+                
+                <div class="content-box" style="display:flex; flex-direction:column; justify-content:space-between; flex: 1;">
+                    <div>
                         <h4>1. Preprocesamiento & Reducción Espacial</h4>
-                        <p style="margin-top: 6px;">El filtrado pasabanda aisló la actividad alfa y el PCA sintetizó el <strong>90.61% de la varianza</strong> de los electrodos occipitales en un promedio espacial óptimo.</p>
-                        </div>
-                        <div style="font-size: 0.78rem; color: var(--secondary-blue); font-weight: 700;">Acondicionamiento Óptimo</div>
+                        <p style="margin-top: 4px; font-size: 0.9rem;">El filtrado pasabanda aisló la actividad alfa y el PCA sintetizó el <strong>90.61% de la varianza</strong> de los electrodos occipitales en un promedio espacial óptimo.</p>
                     </div>
-                    <div class="content-box box-crimson" style="display:flex; flex-direction:column; justify-content:space-between;">
-                        <div>
-                            <h4>2. Clustering no supervisado</h4>
-                            <p style="margin-top: 6px;">K-Means identificó de forma consistente los estados de ojos abiertos y cerrados, alcanzando un ARI de 0.786 y un coeficiente Silhouette de 0.487.
-</p>
-                        </div>
-                        <div style="font-size: 0.78rem; color: var(--accent-crimson); font-weight: 700;">Agrupamiento No Supervisado</div>
-                    </div>
-                    <div class="content-box box-navy" style="display:flex; flex-direction:column; justify-content:space-between;">
-                        <div>
-                            <h4>3. Limitaciones y perspectivas</h4>
-                            <p style="margin-top: 6px;">La validación en un mayor número de sujetos, el fortalecimiento del preprocesamiento y la adaptación del pipeline al procesamiento en tiempo real representan los principales pasos para extender esta metodología.</p>
-                        </div>
-                        <div style="font-size: 0.78rem; color: var(--primary-navy); font-weight: 700;">Validación & Escalabilidad</div>
-                    </div>
+                    <div style="font-size: 0.78rem; color: var(--secondary-blue); font-weight: 700; margin-top: 6px;">Acondicionamiento Óptimo</div>
                 </div>
+
+                <div class="content-box box-crimson" style="display:flex; flex-direction:column; justify-content:space-between; flex: 1;">
+                    <div>
+                        <h4>2. Clustering no supervisado</h4>
+                        <p style="margin-top: 4px; font-size: 0.9rem;">K-Means identificó de forma consistente los estados de ojos abiertos y cerrados, alcanzando un ARI de 0.786 y un coeficiente Silhouette de 0.487.</p>
+                    </div>
+                    <div style="font-size: 0.78rem; color: var(--accent-crimson); font-weight: 700; margin-top: 6px;">Agrupamiento No Supervisado</div>
+                </div>
+
+                <div class="content-box box-navy" style="display:flex; flex-direction:column; justify-content:space-between; flex: 1;">
+                    <div>
+                        <h4>3. Limitaciones y perspectivas</h4>
+                        <p style="margin-top: 4px; font-size: 0.9rem;">La validación en un mayor número de sujetos, el fortalecimiento del preprocesamiento y la adaptación del pipeline al procesamiento en tiempo real representan los principales pasos para extender esta metodología.</p>
+                    </div>
+                    <div style="font-size: 0.78rem; color: var(--primary-navy); font-weight: 700; margin-top: 6px;">Validación & Escalabilidad</div>
+                </div>
+
             </div>
-            <div class="speaker-notes-content" style="display:none;">
-                <span class="time-guide">TIEMPO ASIGNADO: 7:40 - 9:00</span><br><br>
-                <strong>Texto a exponer:</strong><br>
-                "En conclusión, este trabajo muestra cómo articular las herramientas de procesamiento de señales y minería de series temporales en un pipeline completo para bioseñales de EEG.<br><br>
-                El preprocesamiento digital y la combinación espacial por PCA permitieron sintetizar la actividad del polo occipital maximizando la varianza común sin introducir distorsión de fase.<br><br>
-                El análisis espectral de Welch y la STFT caracterizaron con precisión la dinámica periódica del Efecto Berger respecto al fondo aperiódico, revelando una amplificación de 16 veces (12 dB) en la potencia alfa centrada en 10 Hz.<br><br>
-                Finalmente, las técnicas de minería de series temporales en un espacio composicional de épocas disjuntas permitieron validar la separabilidad no supervisada de los estados basales con un Adjusted Rand Index de 0.786 y 94.44 % de concordancia.<br><br>
-                Como consideraciones metodológicas para futuras extensiones, se destacan: evaluar esquemas inter-sujeto (como Leave-One-Subject-Out), calibrar la frecuencia individual alfa (IAF), incorporar módulos de limpieza de artefactos por ICA y migrar a filtros digitales causales sobre buffers deslizantes para aplicaciones en tiempo real.<br><br>
-                Muchas gracias por su atención."
+
+            <!-- Columna Derecha: Espacio reservado para la imagen -->
+            <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+                <img src="garcias.png" alt="Gráfico de conclusiones" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;">
             </div>
-        </section>
+
+        </div>
+    </div>
+    
+    <div class="speaker-notes-content" style="display:none;">
+        <span class="time-guide">TIEMPO ASIGNADO: 7:40 - 9:00</span><br><br>
+        <strong>Texto a exponer:</strong><br>
+        "En conclusión, este trabajo muestra cómo articular las herramientas de procesamiento de señales y minería de series temporales en un pipeline completo para bioseñales de EEG.<br><br>
+        El preprocesamiento digital y la combinación espacial por PCA permitieron sintetizar la actividad del polo occipital maximizando la varianza común sin introducir distorsión de fase.<br><br>
+        El análisis espectral de Welch y la STFT caracterizaron con precisión la dinámica periódica del Efecto Berger respecto al fondo aperiódico, revelando una amplificación de 16 veces (12 dB) en la potencia alfa centrada en 10 Hz.<br><br>
+        Finalmente, las técnicas de minería de series temporales en un espacio composicional de épocas disjuntas permitieron validar la separabilidad no supervisada de los estados basales con un Adjusted Rand Index de 0.786 y 94.44 % de concordancia.<br><br>
+        Como consideraciones metodológicas para futuras extensiones, se destacan: evaluar esquemas inter-sujeto (como Leave-One-Subject-Out), calibrar la frecuencia individual alfa (IAF), incorporar módulos de limpieza de artefactos por ICA y migrar a filtros digitales causales sobre buffers deslizantes para aplicaciones en tiempo real.<br><br>
+        Muchas gracias por su atención."
+    </div>
+</section>
     </main>
 
     <!-- PANEL INFERIOR DE NOTAS DE ORADOR -->
