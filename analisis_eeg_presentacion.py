@@ -871,6 +871,9 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
                 </div>
                 <div class="image-container" style="flex-direction: column; text-align: center; gap: 8px; background: #ffffff;">
                     <img src="{img_topo}" alt="Sistema Internacional 10-20" style="max-height: 200px; width: auto; object-fit: contain;">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin-top: 5px;">
+                        <strong>Figura 1:</strong> Ubicación del polo occipital (O1, Oz, O2) en el sistema internacional 10-20.
+                    </p>
                     <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--primary-navy); border: 1px solid #cbd5e1; padding: 10px 12px; border-radius: 6px; background: #f8fafc; width: 92%; text-align: left; line-height: 1.45;">
                         <strong style="color: var(--secondary-blue);">FLUJO DEL PIPELINE COMPUTACIONAL</strong><br>
                         1. <strong>Señales Crudas:</strong> PhysioNet EDF (S001, 160 Hz)<br>
@@ -914,8 +917,11 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
                         <p>Al tener pesos espacialmente simétricos (~1/√3 ≈ 0.577), PC1 actúa como un promedio ponderado óptimo en varianza. En esquemas supervisados multicanal completos, la discriminabilidad inter-condición se aborda mediante Common Spatial Patterns (CSP).</p>
                     </div>
                 </div>
-                <div class="image-container">
-                    <img src="{img1}" alt="Figura 1: PCA, Canales Temporales y Topomap 10-20">
+                <div class="image-container" style="flex-direction: column; text-align: center; gap: 8px; background: #ffffff;">
+                    <img src="{img1}" alt="Figura 2: PCA, Canales Temporales y Topomap 10-20">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin-top: 5px;">
+                        <strong>Figura 2:</strong> Señales temporales de canales occipitales (A: ojos abiertos, B: ojos cerrados) y componentes PC1 proyectadas espacialmente mediante PCA.
+                    </p>
                 </div>
             </div>
             <div class="speaker-notes-content" style="display:none;">
@@ -954,8 +960,11 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
                         <p>La potencia integrada en Alfa (8-12 Hz) aumenta <strong>{ratio_berger:.2f} veces (~12 dB)</strong>. El pico individual en <strong>f = 10.0 Hz</strong> emerge <strong>~20 dB</strong> sobre la caída aperiódica 1/f.</p>
                     </div>
                 </div>
-                <div class="image-container">
-                    <img src="{img2}" alt="Figura 2: Densidad Espectral de Potencia">
+                <div class="image-container" style="flex-direction: column; text-align: center; gap: 8px; background: #ffffff;">
+                    <img src="{img2}" alt="Figura 3: Densidad Espectral de Potencia">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin-top: 5px;">
+                        <strong>Figura 3:</strong> Densidad espectral de potencia (PSD) estimada por Welch. A: escala lineal que resalta el efecto Berger; B: escala logarítmica (dB) que evidencia el pico de 10 Hz sobre el fondo aperiódico.
+                    </p>
                 </div>
             </div>
             <div class="speaker-notes-content" style="display:none;">
@@ -992,8 +1001,11 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
                         <p>Ojos Abiertos muestra desincronización basal; Ojos Cerrados evidencia activación continua en 10 Hz con atenuaciones transitorias (marcadas en rojo) en t ∈ {{12, 26, 46}} s asociadas a micro-variaciones del reposo.</p>
                     </div>
                 </div>
-                <div class="image-container">
-                    <img src="{img3}" alt="Figura 3: Espectrograma STFT">
+                <div class="image-container" style="flex-direction: column; text-align: center; gap: 8px; background: #ffffff;">
+                    <img src="{img3}" alt="Figura 4: Espectrograma STFT">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin-top: 5px;">
+                        <strong>Figura 4:</strong> Espectrogramas tiempo-frecuencia continuos obtenidos vía STFT para las condiciones de ojos abiertos (arriba) y ojos cerrados (abajo) mostrando la modulación temporal del ritmo alfa.
+                    </p>
                 </div>
             </div>
             <div class="speaker-notes-content" style="display:none;">
@@ -1029,8 +1041,11 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
                         <div class="metric-pill">ARI = {ari_val:.3f} | Silhouette = {sil_val:.3f} | Concordancia = {acc_pct:.2f}%</div>
                     </div>
                 </div>
-                <div class="image-container">
-                    <img src="{img4}" alt="Figura 4: Clustering K-Means">
+                <div class="image-container" style="flex-direction: column; text-align: center; gap: 8px; background: #ffffff;">
+                    <img src="{img4}" alt="Figura 5: Clustering K-Means">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin-top: 5px;">
+                        <strong>Figura 5:</strong> Agrupamiento no supervisado mediante K-Means. A: espacio de atributos relativas con fronteras Voronoi; B: matriz de contingencia que evalúa el desempeño biológico.
+                    </p>
                 </div>
             </div>
             <div class="speaker-notes-content" style="display:none;">
