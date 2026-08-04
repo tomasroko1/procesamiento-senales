@@ -377,7 +377,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     fig_topo.savefig(f_topo_path, dpi=200, bbox_inches='tight')
     plt.close(fig_topo)
     saved_files.append(f_topo_path)
-    print(f" -> Guardado: {f_topo_path}")    
+    print(f" -> Guardado: {f_topo_path}")
 
     # Determinar rango simétrico unificado para PC1
     max_amp = max(np.max(np.abs(pc1_open[:len(t_plot)] * 1e6)), np.max(np.abs(pc1_closed[:len(t_plot)] * 1e6)))
@@ -407,6 +407,15 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     saved_files.append(f1_path)
     print(f" -> Guardado: {f1_path}")
     
+    # -------------------------------------------------------------------------
+    # Figura 2: Densidad Espectral de Potencia (Lineal + Inset Logarítmico en dB)
+    # -------------------------------------------------------------------------
+    fig2, (ax_lin, ax_log) = plt.subplots(1, 2, figsize=(12, 5.0), dpi=160, gridspec_kw={'width_ratios': [1.2, 1]})
+    mask_f = np.logical_and(freqs >= 1.0, freqs <= 35.0)
+
+    psd_open_uv = psd_open * 1e12
+    psd_closed_uv = psd_closed * 1e12
+
     # -------------------------------------------------------------------------
     # Figura 2: Densidad Espectral de Potencia (Lineal + Inset Logarítmico en dB)
     # -------------------------------------------------------------------------
@@ -450,7 +459,6 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     plt.close(fig2)
     saved_files.append(f2_path)
     print(f" -> Guardado: {f2_path}")
-
     # -------------------------------------------------------------------------
     # Figura 3: STFT Espectrogramas Comparativos Continuos (Rango Dinámico Calibrado)
     # -------------------------------------------------------------------------
