@@ -1170,7 +1170,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
     </div>
 
     <footer>
-        <div>PROCESAMIENTO AVANZADO DE SEÑALES & MINERÍA DE SERIES TEMPORALES - UBA</div>
+        <div>PROCESAMIENTO AVANZADO DE SEÑALES - FCEN</div>
         <div>Navegación: <span class="kb-badge">[◀]</span> / <span class="kb-badge">[▶]</span> o <span class="kb-badge">[Espacio]</span> | Notas: <span class="kb-badge">[N]</span> | Pantalla Completa: <span class="kb-badge">[F]</span></div>
     </footer>
 
