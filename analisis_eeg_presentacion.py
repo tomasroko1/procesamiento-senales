@@ -895,7 +895,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
 </head>
 <body>
     <header>
-        <div class="univ-title">EVALUACIÓN FINAL | PROCESAMIENTO AVANZADO DE SEÑALES & MINERÍA DE SERIES TEMPORALES</div>
+        <div class="univ-title">EVALUACIÓN FINPROCESAMIENTO AVANZADO DE SEÑALES & MINERÍA DE SERIES TEMPORALES</div>
         <div class="controls-area">
             <span class="slide-counter" id="slideNum">1 / 6</span>
             <button class="btn" onclick="prevSlide()">[Anterior]</button>
