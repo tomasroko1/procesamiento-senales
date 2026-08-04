@@ -1,31 +1,30 @@
-# Guion de Presentación (9 minutos) - Versión Blindada y Rigurosa
+# Guion de Exposición Oral (Video Explicativo de 9 Minutos)
 
-**Materia:** Procesamiento Avanzado de Señales y Minería de Series Temporales  
-**Tema:** Decodificación de Dinámicas Cerebrales en EEG mediante Reducción Espacial por PCA, STFT y Clustering K-Means  
+**Materia:** Procesamiento Avanzado de Señales y Minería de Series Temporales (UBA)  
+**Tema:** Caracterización Espectral y Agrupamiento No Supervisado del Ritmo Alfa Occipital en EEG (Estudio de Caso Intra-Sujeto)  
+**Calibración de Tiempo:** 9 minutos netos para video explicativo asincrónico  
 
 ---
 
-### Diapositiva 1: Introducción y objetivo del trabajo
+### Diapositiva 1: Introducción, Metodología y Objetivo
 
 **Tiempo asignado:** 0:00 - 1:20
 
 **Texto a exponer:**
 
-En este trabajo presento un pipeline computacional para analizar señales reales de electroencefalografía, o EEG, con el objetivo de identificar y cuantificar cambios en la actividad cerebral asociados al ritmo alfa occipital.
+En este trabajo presento un pipeline computacional para el análisis y caracterización cuantitativa del ritmo alfa occipital en electroencefalografía (EEG), utilizando un enfoque no supervisado como estudio de caso intra-sujeto.
 
-El proyecto articula de forma directa los contenidos desarrollados a lo largo de la materia.
+La metodología se estructura en tres etapas funcionales integradas:
 
-En la **Unidad 1**, se implementó el preprocesamiento de señales: filtrado digital pasa-banda de fase cero, combinación espacial mediante Análisis de Componentes Principales, o PCA, y representaciones tiempo-frecuencia con la Transformada de Fourier de Tiempo Reducido, o STFT.
+Primero, abordamos el **preprocesamiento y reducción espacial**: implementamos un filtrado digital FIR de fase cero para evitar distorsiones temporales, realizamos una combinación espacial óptima mediante Análisis de Componentes Principales (PCA) y construimos representaciones tiempo-frecuencia continuas con la Transformada de Fourier de Tiempo Reducido (STFT).
 
-En la **Unidad 2**, se aplicaron técnicas de minería de series temporales, segmentando la señal en épocas temporales disjuntas y extrayendo atributos de potencia espectral relativa para clustering no supervisado.
+Segundo, aplicamos técnicas de **minería de series temporales**: segmentamos el registro en 54 épocas temporales disjuntas e independientes, extrajimos características espectrales relativas robustas y evaluamos el agrupamiento con K-Means mediante métricas no supervisadas formales como el Adjusted Rand Index y el Silhouette Score.
 
-En la **Unidad 3**, estos métodos se aplicaron a un biomarcador neurofisiológico clásico: la modulación del ritmo alfa occipital y el efecto Berger.
-
-Como prueba de concepto metodológica, se analizaron registros del dataset público PhysioNet EEGMMIDB, correspondientes al sujeto S001, muestreados a 160 Hz durante dos condiciones de reposo continuo: ojos abiertos y ojos cerrados.
+Tercero, **contextualizamos los resultados biofísicamente**: caracterizando cuantitativamente el ritmo alfa y el Efecto Berger sobre registros basales del sujeto S001 de PhysioNet EEGMMIDB, adquiridos a 160 Hz en condiciones de ojos abiertos y ojos cerrados.
 
 ---
 
-### Diapositiva 2: Preprocesamiento y reducción espacial mediante PCA
+### Diapositiva 2: Preprocesamiento y Combinación Espacial mediante PCA
 
 **Tiempo asignado:** 1:20 - 2:50
 
@@ -33,99 +32,90 @@ Como prueba de concepto metodológica, se analizaron registros del dataset públ
 
 La primera etapa del pipeline consiste en el preprocesamiento de la señal.
 
-Las señales de EEG presentan amplitudes del orden de los microvoltios y son muy vulnerables al ruido de baja frecuencia y a interferencias de línea. Para acondicionarlas, se aplicó un filtro FIR pasa-banda entre 1 y 40 Hz mediante filtrado de fase cero bidireccional, garantizando distorsión de fase nula.
+Las señales de EEG tienen amplitudes muy pequeñas, del orden de los microvoltios, por lo que son especialmente sensibles al ruido y a diferentes tipos de interferencias. Para acondicionarlas se aplicó un filtro FIR pasa-banda entre 1 y 40 Hz de fase cero bidireccional, preservando la fase original de las oscilaciones neuronales.
 
-Para eliminar los transitorios de borde característicos del filtro pasa-alto, se descartaron los primeros y últimos tres segundos de cada registro.
+Para evitar los transitorios de respuesta impulsional en los extremos del registro generados por el pasa-alto de 1 Hz, se recortaron tres segundos al inicio y al final de cada archivo.
 
-Posteriormente, se seleccionaron los tres canales occipitales contiguos: O1, Oz y O2, ubicados sobre la corteza visual primaria.
+A continuación, seleccionamos los canales occipitales O1, Oz y O2, ubicados anatómicamente sobre el lóbulo occipital y la corteza visual primaria, como se ilustra en el esquema topográfico 10-20.
 
-Sobre estos sensores se aplicó PCA. La primera componente explicó el 90,61 % de la varianza total con coeficientes prácticamente balanceados entre 0,57 y 0,58.
+Sobre estos tres sensores adyacentes aplicamos PCA para sintetizar la actividad coherente. La primera componente principal explicó el **90,61 %** de la varianza total.
 
-Desde el punto de vista biofísico, debido a la fuerte conducción de volumen entre electrodos adyacentes, esta primera componente opera como un filtro espacial de promedio óptimo que realza la señal cerebral común y atenúa el ruido incoherente de los sensores.
+Matemáticamente, los coeficientes obtenidos, alrededor de 0,58 para cada canal, convergen de forma natural al vector unitario balanceado uno sobre raíz de tres. Esto es clave: significa que el algoritmo no supervisado descubrió por sí solo que el promedio espacial simple de los tres electrodos era la combinación óptima para maximizar la varianza común compartida por conducción de volumen.
 
-En la figura temporal se observa con claridad cómo, mientras en ojos abiertos predomina una señal desincronizada de baja amplitud, en ojos cerrados emerge una oscilación periódica prominente cercana a los 10 Hz.
+En las trazas temporales de la figura se aprecia con claridad la transición: un trazado de baja amplitud en ojos abiertos versus una oscilación rítmica periódica de gran amplitud en ojos cerrados.
 
 ---
 
-### Diapositiva 3: Análisis espectral y efecto Berger
+### Diapositiva 3: Análisis Espectral y Cuantificación del Efecto Berger
 
 **Tiempo asignado:** 2:50 - 4:20
 
 **Texto a exponer:**
 
-Una vez obtenida la componente principal espacial, se analizó su contenido en frecuencia a través de la Densidad Espectral de Potencia.
+Una vez obtenida la componente principal, caracterizamos su contenido frecuencial mediante la Densidad Espectral de Potencia.
 
-Para estimar el espectro se utilizó el método de Welch con ventanas Hann de dos segundos y un 50 % de solapamiento, logrando un espaciado entre bins discretos de 0,5 Hz.
+Para lograr una estimación espectral consistente y de baja varianza utilizamos el método de Welch, empleando ventanas de Hann de dos segundos con un 50 % de solapamiento. Esto establece un espaciado entre muestras de la DFT de 0,5 Hz, con una resolución física de Rayleigh aproximada de 0,75 Hz acorde al ancho del lóbulo principal de la ventana.
 
-En la figura se contrastan los espectros de ambas condiciones experimentales.
+En el panel lineal de la Figura 2 observamos el contraste clásico del Efecto Berger: en la condición de ojos abiertos predomina una desincronización cortical con baja potencia espectral, mientras que al cerrar los ojos emerge un pico oscilatorio resonante muy marcado centrado en 10,0 Hz.
 
-Con los ojos abiertos, la potencia en la banda alfa permanece atenuada debido a la desincronización cortical continua inducida por la estimulación visual.
+La potencia integrada en la banda alfa de 8 a 12 Hz se incrementa **16 veces (alrededor de 12 dB)** respecto a la condición basal.
 
-Al cerrar los ojos, al cesar la entrada visual, los circuitos tálamo-corticales occipitales entran en un régimen de sincronización masiva en reposo, generando un pico resonante en 10 Hz conocido clásicamente como Efecto Berger.
-
-La potencia integrada en la banda alfa se incrementa en aproximadamente 16 veces respecto a la condición de ojos abiertos. El panel logarítmico permite verificar además la dinámica aperiódica de fondo tipo uno sobre efe.
+Complementariamente, en el panel semilogarítmico en decibelios vemos que el pico oscilatorio de 10 Hz emerge casi **20 dB por encima del piso aperiódico 1/f**, característico de la actividad electrofisiológica cerebral asincrónica.
 
 ---
 
-### Diapositiva 4: Análisis tiempo-frecuencia mediante STFT
+### Diapositiva 4: Análisis Tiempo-Frecuencia Dinámico mediante STFT
 
 **Tiempo asignado:** 4:20 - 5:50
 
 **Texto a exponer:**
 
-Hasta este punto, el análisis espectral de Welch proporcionó una caracterización promedio global en frecuencia.
+Dado que las bioseñales electroencefalográficas son procesos no estacionarios, complementamos el análisis espectral con la Transformada de Fourier de Tiempo Reducido, o STFT discreta.
 
-Sin embargo, para verificar si la oscilación observada corresponde a un fenómeno biológico sostenido o a descargas transitorias aisladas, se aplicó la Transformada de Fourier de Tiempo Reducido, o STFT.
+Bajo el principio de incertidumbre de Gabor-Heisenberg, la resolución temporal física está gobernada por la duración de la ventana de análisis de dos segundos (320 muestras). Para mapear la evolución de forma continua y suave, desplazamos la ventana con un paso temporal o hop size de 0,25 segundos (40 muestras), lo que equivale a un solapamiento del 87,5 %.
 
-Se utilizó la formulación discreta con ventanas Hann de dos segundos y un solapamiento del 87,5 %, generando una resolución temporal de 0,25 segundos.
+En la Figura 3 calibramos el rango dinámico en 36 decibelios para visualizar tanto la actividad de fondo como las oscilaciones dominantes en una escala cuantitativa unificada.
 
-En el espectrograma de ojos abiertos, la energía en la banda alfa permanece uniformemente baja a lo largo de todo el tramo temporal.
+En el panel superior de ojos abiertos se aprecia un espectro desincronizado y homogéneo a lo largo de los 55 segundos.
 
-En la condición de ojos cerrados, en cambio, se aprecia una banda de alta potencia continua y estable centrada en los 10 Hz durante prácticamente la totalidad de los 55 segundos de registro.
-
-Esta representación confirma empíricamente la estabilidad temporal y persistencia del ritmo alfa occipital en este sujeto.
+En el panel inferior de ojos cerrados se observa una banda prominente y continua en torno a los 10 Hz. Si bien el alto solapamiento produce un suavizado visual, es posible detectar sutiles atenuaciones transitorias de potencia (claramente señaladas con marcadores rojos en los segundos 12, 26 y 46), vinculadas a variaciones dinámicas del reposo que analizaremos en la etapa de clustering.
 
 ---
 
-### Diapositiva 5: Minería de series temporales y clustering
+### Diapositiva 5: Minería de Series Temporales y Agrupamiento con K-Means
 
 **Tiempo asignado:** 5:50 - 7:40
 
 **Texto a exponer:**
 
-La última etapa del trabajo corresponde a la minería de series temporales.
+En la etapa de minería de series temporales, el objetivo fue comprobar si un algoritmo no supervisado es capaz de particionar automáticamente los estados neurofisiológicos sin disponer de etiquetas previas durante el entrenamiento.
 
-El objetivo fue evaluar si un algoritmo de agrupamiento no supervisado es capaz de particionar automáticamente los estados cerebrales sin emplear etiquetas durante el ajuste.
+Para evitar muestras redundantes y respetar la independencia estadística requerida por el clustering, dividimos la componente principal en **54 épocas temporales disjuntas de dos segundos** (27 épocas por condición).
 
-Para ello, la componente principal se segmentó en 54 épocas temporales disjuntas de dos segundos: 27 de ojos abiertos y 27 de ojos cerrados.
+Sobre cada época calculamos la potencia relativa en la banda alfa y en la banda beta normalizadas por la energía total de 1 a 40 Hz. Esta normalización composicional otorga robustez frente a posibles derivas lentas de impedancia del electrodo, operando la banda alfa como el eje primario de discriminación.
 
-En cada época se extrajeron dos características normalizadas: la potencia relativa en alfa y la potencia relativa en beta, divididas por la energía de banda ancha entre 1 y 40 Hz.
+Tras estandarizar las características para operar en una escala homogénea, aplicamos K-Means con k=2. Evaluamos la estructura del agrupamiento mediante métricas formales no supervisadas: [pausa breve] obtuvimos un **Adjusted Rand Index de 0,786** y un **Silhouette Score de 0,487**.
 
-Esta normalización relativa reduce la variabilidad por impedancia de contacto de los sensores. Es importante notar que la correlación negativa observada en el plano 2D responde en gran parte a la restricción composicional del denominador total ante la subida del pico alfa.
+Al contrastar los clústeres asignados con las condiciones experimentales mediante un mapeo semántico post-hoc, la concordancia alcanza el **94,44 %**, separando perfectamente todas las épocas de ojos abiertos (27/27) y 24 de 27 de ojos cerrados.
 
-Tras estandarizar las características, se aplicó K-Means con k igual a 2. El algoritmo logró una estructura de partición muy definida, con un Adjusted Rand Index de 0,786 y un Silhouette Score de 0,487.
-
-Al asociar el clúster de mayor potencia alfa a la condición de ojos cerrados según la hipótesis biofísica de Berger, se obtiene una concordancia del 94,44 % con el ground truth.
-
-Las tres ventanas discrepantes corresponden a épocas de baja sincronización transitoria, artefactos residuales o ruido en esa ventana específica.
+Las 3 épocas de ojos cerrados asignadas al otro grupo (resaltadas en naranja) ocurrieron en los segundos 12, 26 y 46 del registro, coincidiendo con las breves desincronizaciones de alfa visibles en el espectrograma, atribuibles a micro-modulaciones atencionales o pequeñas fluctuaciones del reposo.
 
 ---
 
-### Diapositiva 6: Conclusiones
+### Diapositiva 6: Conclusiones y Perspectivas
 
 **Tiempo asignado:** 7:40 - 9:00
 
 **Texto a exponer:**
 
-Como conclusión, este trabajo demuestra cómo las herramientas de procesamiento de señales y minería temporal vistas a lo largo del curso se integran en un pipeline coherente y reproducible para el análisis de EEG.
+En conclusión, este trabajo muestra cómo articular las herramientas de procesamiento de señales y minería de series temporales en un pipeline computacional integrado para bioseñales de EEG.
 
-El preprocesamiento FIR de fase cero y la combinación espacial por PCA permitieron sintetizar la actividad de la corteza visual occipital maximizando la energía compartida y mejorando la relación señal-ruido.
+El preprocesamiento digital y la combinación espacial por PCA permitieron sintetizar la actividad del polo occipital maximizando la varianza común sin introducir distorsión de fase.
 
-El análisis espectral de Welch y la STFT caracterizaron con precisión el ritmo alfa a 10 Hz y confirmaron su persistencia temporal continua durante el reposo.
+El análisis espectral de Welch y la STFT caracterizaron con precisión la dinámica periódica del Efecto Berger respecto al fondo aperiódico, revelando una amplificación de 16 veces (12 dB) en la potencia alfa centrada en 10 Hz.
 
-En la etapa de minería, el espacio 2D de potencia espectral relativa permitió a un algoritmo no supervisado como K-Means particionar los estados cerebrales con un alto índice de Rand ajustado.
+Finalmente, las técnicas de minería de series temporales en un espacio composicional de épocas disjuntas permitieron validar la separabilidad no supervisada de los estados basales con un Adjusted Rand Index de 0,786 y 94,44 % de concordancia.
 
-Reconociendo que este análisis se realizó sobre un único sujeto en bloques continuos como prueba de concepto metodológica, la proyección natural hacia interfaces cerebro-computadora requerirá validaciones inter-sujeto con validación cruzada Leave-One-Subject-Out, calibración de frecuencias individuales alfa y técnicas de desmezcla ciega de artefactos por ICA.
+Como consideraciones metodológicas para futuras extensiones, se destacan: evaluar esquemas inter-sujeto (como Leave-One-Subject-Out), calibrar la frecuencia individual alfa (IAF), incorporar módulos de limpieza de artefactos por ICA y migrar a filtros digitales causales sobre buffers deslizantes para aplicaciones en tiempo real.
 
-Muchas gracias. Quedo a disposición de las preguntas del tribunal.
-
+Muchas gracias por su atención.

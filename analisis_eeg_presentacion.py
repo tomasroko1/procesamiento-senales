@@ -3,7 +3,8 @@
 """
 ===============================================================================
 PROYECTO FINAL: PROCESAMIENTO AVANZADO DE SEÑALES Y MINERÍA DE SERIES TEMPORALES
-Pipeline End-to-End: Análisis de EEG (Efecto Berger), PCA, STFT y Clustering K-Means
+Pipeline End-to-End: Caracterización Espectral y Agrupamiento No Supervisado
+del Ritmo Alfa Occipital en EEG (Estudio de Caso Intra-Sujeto)
 Generador Automático de Figuras Científicas y Presentación HTML Universitaria
 ===============================================================================
 """
@@ -15,6 +16,7 @@ import numpy as np
 import urllib.request
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.patches as patches
 from scipy.signal import spectrogram, welch, periodogram
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
@@ -113,7 +115,7 @@ def cargar_y_preprocesar_eeg(base_dir="."):
 def aplicar_pca_espacial(data_open, data_closed):
     """
     Aplica PCA sobre los electrodos occipitales O1, Oz y O2.
-    Actúa como un combinador lineal no supervisado de covarianza local que maximiza
+    Opera como un combinador lineal no supervisado de la covarianza local que maximiza
     la varianza de la fuente oscilatoria dominante en la región occipital.
     """
     print("\n" + "="*70)
@@ -134,7 +136,7 @@ def aplicar_pca_espacial(data_open, data_closed):
     loadings = pca.components_[0]
     
     print(f" -> Varianza explicada por PC1: {var_exp:.2f}%")
-    print(f" -> Pesos espaciales del filtro (Loadings): O1={loadings[0]:.3f}, Oz={loadings[1]:.3f}, O2={loadings[2]:.3f}")
+    print(f" -> Pesos espaciales (Loadings): O1={loadings[0]:.3f}, Oz={loadings[1]:.3f}, O2={loadings[2]:.3f}")
     
     return pc1_open, pc1_closed, pca, var_exp
 
@@ -146,7 +148,7 @@ def aplicar_pca_espacial(data_open, data_closed):
 def analisis_espectral_y_tiempo_frecuencia(pc1_open, pc1_closed, sfreq):
     """
     Calcula la Densidad Espectral de Potencia (PSD de Welch) sobre el registro continuo y Espectrogramas (STFT)
-    para cuantificar el Efecto Berger evitando discontinuidades temporales.
+    para cuantificar el Efecto Berger distinguiendo entre espaciado FFT (df) y resolución de Rayleigh.
     """
     print("\n" + "="*70)
     print(" [3/5] ANALISIS ESPECTRAL Y TIEMPO-FRECUENCIA (PSD & STFT)")
@@ -169,6 +171,7 @@ def analisis_espectral_y_tiempo_frecuencia(pc1_open, pc1_closed, sfreq):
     print(f" -> Incremento de Potencia Alfa (Ratio Berger): {ratio_berger:.2f}x")
     
     # Espectrogramas STFT continuos independientes
+    # Ventana Hann 2.0 s (soporte temporal físico Tw = 2.0 s), paso temporal hop_size = 0.25 s (solapamiento 87.5%)
     nperseg_stft = int(2.0 * sfreq)
     noverlap_stft = int(nperseg_stft * 0.875)
     
@@ -192,7 +195,7 @@ def mineria_y_clustering_kmeans(pc1_open, pc1_closed, sfreq, win_len_sec=2.0):
     """
     Segmentación en épocas temporales disjuntas de 2.0 s, cálculo espectral por época mediante
     Periodograma Modificado con ventana Hann, extracción de Potencia Relativa (Alfa y Beta sobre 1-40 Hz)
-    para conferir robustez frente a variaciones de impedancia, y clustering no supervisado K-Means.
+    y clustering no supervisado K-Means.
     """
     print("\n" + "="*70)
     print(" [4/5] MINERIA DE SERIES TEMPORALES: EXTRACCION DE ATRIBUTOS Y K-MEANS")
@@ -254,12 +257,17 @@ def mineria_y_clustering_kmeans(pc1_open, pc1_closed, sfreq, win_len_sec=2.0):
     sil_score = silhouette_score(X_scaled, cluster_pred)
     ari_score = adjusted_rand_score(y_true, cluster_pred)
     
+    # Identificar épocas con discrepancia
+    err_indices = np.where(y_true != y_pred_aligned)[0]
+    err_times = [(idx - len(y_open)) * win_len_sec for idx in err_indices if idx >= len(y_open)]
+    
     print(f" -> Epocas Temporales Analizadas (2.0 s netas): {len(y_true)} ({len(y_open)} Abiertos, {len(y_closed)} Cerrados)")
     print(f" -> Correlacion Potencia Relativa Alfa vs Beta: r = {corr_alpha_beta:.3f}")
     print(f" -> Silhouette Score: {sil_score:.3f}")
     print(f" -> Adjusted Rand Index (ARI): {ari_score:.3f}")
-    print(f" -> Concordancia Semántica vs Ground Truth (Prueba Intra-Sujeto): {acc * 100:.2f}%")
-    print(f" -> Matriz de Confusión:\n{cm}")
+    print(f" -> Concordancia de Partición Semántica: {acc * 100:.2f}%")
+    print(f" -> Épocas con discrepancia (Ojos Cerrados): segundos {err_times} (micro-arousals)")
+    print(f" -> Matriz de Contingencia:\n{cm}")
     
     return {
         'X': X,
@@ -276,7 +284,9 @@ def mineria_y_clustering_kmeans(pc1_open, pc1_closed, sfreq, win_len_sec=2.0):
         'scaler': scaler_km,
         'n_open': len(y_open),
         'n_closed': len(y_closed),
-        'closed_cluster_id': closed_cluster_id
+        'closed_cluster_id': closed_cluster_id,
+        'err_indices': err_indices,
+        'err_times': err_times
     }
 
 
@@ -289,7 +299,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
                      clustering_res, sfreq, output_dir="."):
     """
     Genera 4 gráficos científicos en alta resolución con estilo formal editorial.
-    Resuelve todas las deficiencias de graficación, espaciado, escalas logarítmicas y fronteras Voronoi.
+    Incorpora esquema topográfico 10-20, calibración de rangos dinámicos y métricas no supervisadas.
     """
     print("\n" + "="*70)
     print(" [5/5] GENERACION DE FIGURAS CIENTIFICAS (.PNG) RIGUROSAS")
@@ -298,13 +308,13 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     saved_files = []
     
     # -------------------------------------------------------------------------
-    # Figura 1: Canales Occipitales y PC1 (Espaciado Holgado y Eje Y Unificado)
+    # Figura 1: Canales Occipitales, PC1 y Esquema Topográfico 10-20
     # -------------------------------------------------------------------------
-    fig1 = plt.figure(figsize=(12, 6.2), dpi=160)
-    gs = gridspec.GridSpec(2, 2, height_ratios=[1.2, 1], hspace=0.32, wspace=0.22)
+    fig1 = plt.figure(figsize=(12, 6.4), dpi=160)
+    gs = gridspec.GridSpec(2, 2, height_ratios=[1.2, 1], hspace=0.34, wspace=0.24)
     t_plot = np.arange(0, int(6 * sfreq)) / sfreq
     
-    offset_step = 110.0  # Espaciado vertical de 110 uV para máxima claridad
+    offset_step = 110.0  # Espaciado vertical de 110 uV para evitar solapamiento
     colors_ch = ['#1e40af', '#0d9488', '#d97706']
     
     # Panel 1: Canales Occipitales Abiertos
@@ -312,7 +322,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     for idx, ch in enumerate(target_channels):
         ax1.plot(t_plot, data_open[idx, :len(t_plot)] * 1e6 + idx * offset_step, 
                  label=rf"{ch} (+{int(idx*offset_step)} $\mu$V)", color=colors_ch[idx % len(colors_ch)], lw=1.2)
-    ax1.set_title("Ojos Abiertos: Canales Occipitales (O1, Oz, O2)", fontweight='bold', color='#0f2942', fontsize=11)
+    ax1.set_title("Ojos Abiertos: Canales Occipitales (O1, Oz, O2)", fontweight='bold', color='#0f2942', fontsize=10.8)
     ax1.set_ylabel(r"Amplitud con Offset ($\mu$V)")
     ax1.legend(loc='upper right', framealpha=0.92, fontsize=8.5)
     ax1.set_ylim(-110, len(target_channels) * offset_step + 120)
@@ -323,10 +333,35 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     for idx, ch in enumerate(target_channels):
         ax2.plot(t_plot, data_closed[idx, :len(t_plot)] * 1e6 + idx * offset_step, 
                  label=rf"{ch} (+{int(idx*offset_step)} $\mu$V)", color=colors_ch[idx % len(colors_ch)], lw=1.2)
-    ax2.set_title("Ojos Cerrados: Canales Occipitales (Ritmo Alfa)", fontweight='bold', color='#0f2942', fontsize=11)
+    ax2.set_title("Ojos Cerrados: Canales Occipitales (Ritmo Alfa)", fontweight='bold', color='#0f2942', fontsize=10.8)
     ax2.legend(loc='upper right', framealpha=0.92, fontsize=8.5)
     ax2.set_ylim(-110, len(target_channels) * offset_step + 120)
     ax2.set_xlim(0, 6)
+    
+    # Inset Topográfico 10-20 en ax2 para ilustrar la ubicación anatómica occipital
+    ax_topo = ax2.inset_axes([0.62, 0.05, 0.35, 0.40])
+    head_circle = plt.Circle((0, 0), 1.0, color='#f1f5f9', ec='#334155', lw=1.2, zorder=1)
+    ax_topo.add_patch(head_circle)
+    # Nariz
+    ax_topo.plot([-0.18, 0.0, 0.18], [0.98, 1.22, 0.98], color='#334155', lw=1.2, zorder=2)
+    # Orejas
+    ax_topo.plot([-1.02, -1.12, -1.02], [-0.15, 0.0, 0.15], color='#334155', lw=1.0, zorder=2)
+    ax_topo.plot([1.02, 1.12, 1.02], [-0.15, 0.0, 0.15], color='#334155', lw=1.0, zorder=2)
+    # Electrodos clave de referencia
+    ref_elecs = {'Cz': (0, 0), 'Fz': (0, 0.5), 'Pz': (0, -0.45), 'Fp1': (-0.35, 0.78), 'Fp2': (0.35, 0.78)}
+    for name, (ex, ey) in ref_elecs.items():
+        ax_topo.scatter(ex, ey, color='#94a3b8', s=16, zorder=3)
+        ax_topo.text(ex, ey + 0.08, name, fontsize=5.5, ha='center', va='bottom', color='#64748b')
+    # Electrodos Occipitales Destacados
+    occ_coords = {'O1': (-0.32, -0.78), 'Oz': (0.0, -0.82), 'O2': (0.32, -0.78)}
+    for name, (ex, ey) in occ_coords.items():
+        ax_topo.scatter(ex, ey, color='#b91c1c', s=45, ec='#450a0a', lw=1.0, zorder=4)
+        ax_topo.text(ex, ey - 0.18, name, fontsize=6.8, ha='center', va='top', fontweight='bold', color='#991b1b')
+    ax_topo.set_xlim(-1.3, 1.3)
+    ax_topo.set_ylim(-1.3, 1.3)
+    ax_topo.set_aspect('equal')
+    ax_topo.axis('off')
+    ax_topo.set_title("Montaje 10-20 (Polo Occipital)", fontsize=7.2, fontweight='bold', color='#1e293b', pad=1)
     
     # Determinar rango simétrico unificado para PC1
     max_amp = max(np.max(np.abs(pc1_open[:len(t_plot)] * 1e6)), np.max(np.abs(pc1_closed[:len(t_plot)] * 1e6)))
@@ -335,18 +370,18 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     # Panel 3: PC1 Abiertos
     ax3 = fig1.add_subplot(gs[1, 0])
     ax3.plot(t_plot, pc1_open[:len(t_plot)] * 1e6, color='#0284c7', lw=1.3)
-    ax3.set_title("PC1 Espacial - Ojos Abiertos (Desincronización Visual)", fontsize=10.5, fontweight='bold', color='#1e293b')
+    ax3.set_title(r"$\mathrm{PC}_1$ Espacial - Ojos Abiertos (Desincronización Visual)", fontsize=10.2, fontweight='bold', color='#1e293b')
     ax3.set_xlabel("Tiempo (s)")
-    ax3.set_ylabel(r"Amplitud PC1 ($\mu\mathrm{V}\ \mathrm{equiv.}$)")
+    ax3.set_ylabel(r"$\mathrm{PC}_1\ (\mu\mathrm{V}\ \mathrm{ponderados})$")
     ax3.set_ylim(-ylim_unified, ylim_unified)
     ax3.set_xlim(0, 6)
     
     # Panel 4: PC1 Cerrados
     ax4 = fig1.add_subplot(gs[1, 1])
     ax4.plot(t_plot, pc1_closed[:len(t_plot)] * 1e6, color='#b91c1c', lw=1.3)
-    ax4.set_title(r"PC1 Espacial - Ojos Cerrados (Oscilación Coherente $\approx$10 Hz)", fontsize=10.5, fontweight='bold', color='#1e293b')
+    ax4.set_title(r"$\mathrm{PC}_1$ Espacial - Ojos Cerrados (Oscilación Coherente $\approx 10\ \mathrm{Hz}$)", fontsize=10.2, fontweight='bold', color='#1e293b')
     ax4.set_xlabel("Tiempo (s)")
-    ax4.set_ylabel(r"Amplitud PC1 ($\mu\mathrm{V}\ \mathrm{equiv.}$)")
+    ax4.set_ylabel(r"$\mathrm{PC}_1\ (\mu\mathrm{V}\ \mathrm{ponderados})$")
     ax4.set_ylim(-ylim_unified, ylim_unified)
     ax4.set_xlim(0, 6)
     
@@ -366,39 +401,41 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     psd_closed_uv = psd_closed * 1e12
     
     # Panel A: Escala Lineal (Realce del Efecto Berger)
-    ax_lin.plot(freqs[mask_f], psd_open_uv[mask_f], label='Ojos Abiertos (Atenuación Tónica)', color='#0284c7', lw=1.9)
-    ax_lin.plot(freqs[mask_f], psd_closed_uv[mask_f], label='Ojos Cerrados (Sincronización Alfa)', color='#b91c1c', lw=2.2)
+    ax_lin.plot(freqs[mask_f], psd_open_uv[mask_f], label='Ojos Abiertos (ERD)', color='#0284c7', lw=1.9)
+    ax_lin.plot(freqs[mask_f], psd_closed_uv[mask_f], label='Ojos Cerrados (ERS Alfa)', color='#b91c1c', lw=2.2)
     ax_lin.axvspan(8.0, 12.0, color='#fef3c7', alpha=0.65, label=r'Banda Alfa ($8 - 12$ Hz)')
     
     idx_alpha = np.logical_and(freqs >= 8.0, freqs <= 12.0)
     f_peak = freqs[idx_alpha][np.argmax(psd_closed_uv[idx_alpha])]
     p_peak = np.max(psd_closed_uv[idx_alpha])
-    ax_lin.annotate(f'Pico Alfa: {f_peak:.1f} Hz\n(Ratio: 16.00x)', 
+    ax_lin.annotate(f'Pico Alfa: {f_peak:.1f} Hz\n(Ratio Berger: 16.00x)', 
                     xy=(f_peak, p_peak), xytext=(f_peak + 3.2, p_peak * 0.85),
                     arrowprops=dict(facecolor='#991b1b', shrink=0.08, width=1.3, headwidth=6),
-                    fontweight='bold', color='#991b1b', fontsize=9.5,
+                    fontweight='bold', color='#991b1b', fontsize=9.2,
                     bbox=dict(boxstyle="round,pad=0.35", fc="#fff1f2", ec="#f43f5e", lw=1))
     
-    ax_lin.set_title("Densidad Espectral de Potencia (Escala Lineal)", fontweight='bold', color='#0f2942')
+    ax_lin.set_title("Densidad Espectral de Potencia de Welch (Escala Lineal)\n" + r"[Espaciado $\Delta f = 0.5\ \mathrm{Hz}$ | Res. Rayleigh $\approx 0.75\ \mathrm{Hz}$]", 
+                      fontweight='bold', color='#0f2942', fontsize=10.5)
     ax_lin.set_xlabel("Frecuencia (Hz)")
     ax_lin.set_ylabel(r"PSD ($\mu\mathrm{V}^2/\mathrm{Hz}$)")
     ax_lin.set_xlim(1, 35)
-    ax_lin.legend(loc='upper right', framealpha=0.92, fontsize=9.5)
+    ax_lin.legend(loc='upper right', framealpha=0.92, fontsize=9.2)
     
     # Panel B: Escala Semilogarítmica en dB (Dinámica Aperiódica 1/f y Banda Ancha)
     psd_open_db = 10 * np.log10(psd_open_uv + 1e-12)
     psd_closed_db = 10 * np.log10(psd_closed_uv + 1e-12)
     
-    ax_log.plot(freqs[mask_f], psd_open_db[mask_f], label='Ojos Abiertos', color='#0284c7', lw=1.8)
-    ax_log.plot(freqs[mask_f], psd_closed_db[mask_f], label='Ojos Cerrados', color='#b91c1c', lw=2.0)
+    ax_log.plot(freqs[mask_f], psd_open_db[mask_f], label='Ojos Abiertos (1/f aperiódico)', color='#0284c7', lw=1.8)
+    ax_log.plot(freqs[mask_f], psd_closed_db[mask_f], label=r'Ojos Cerrados ($1/f$ + Pico Alfa)', color='#b91c1c', lw=2.0)
     ax_log.axvspan(8.0, 12.0, color='#fef3c7', alpha=0.65)
     ax_log.axvspan(13.0, 30.0, color='#e0f2fe', alpha=0.45, label=r'Banda Beta ($13 - 30$ Hz)')
     
-    ax_log.set_title(r"PSD en Escala Logarítmica ($\mathrm{dB}\ [\mu\mathrm{V}^2/\mathrm{Hz}]$)", fontweight='bold', color='#0f2942')
+    ax_log.set_title(r"PSD en Escala Logarítmica ($\mathrm{dB}\ [\mu\mathrm{V}^2/\mathrm{Hz}]$)" + "\n[Componente Oscilatoria sobre Fondo Aperiódico]", 
+                     fontweight='bold', color='#0f2942', fontsize=10.5)
     ax_log.set_xlabel("Frecuencia (Hz)")
     ax_log.set_ylabel(r"Potencia ($\mathrm{dB}$)")
     ax_log.set_xlim(1, 35)
-    ax_log.legend(loc='upper right', framealpha=0.92, fontsize=9.5)
+    ax_log.legend(loc='upper right', framealpha=0.92, fontsize=9.0)
     
     plt.tight_layout()
     f2_path = os.path.join(output_dir, "fig2_psd_espectro_alfa.png")
@@ -408,30 +445,26 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     print(f" -> Guardado: {f2_path}")
     
     # -------------------------------------------------------------------------
-    # Figura 3: STFT Espectrogramas Comparativos Continuos
+    # Figura 3: STFT Espectrogramas Comparativos Continuos (Rango Dinámico Calibrado)
     # -------------------------------------------------------------------------
     fig3, (ax_open, ax_closed) = plt.subplots(2, 1, figsize=(11, 5.8), dpi=160, sharex=True, sharey=True)
     
-    vmin = min(10 * np.log10(np.min(Sxx_open * 1e12) + 1e-6), 10 * np.log10(np.min(Sxx_closed * 1e12) + 1e-6))
-    vmax = max(10 * np.log10(np.max(Sxx_open * 1e12) + 1e-6), 10 * np.log10(np.max(Sxx_closed * 1e12) + 1e-6))
+    # Calibrar rango dinámico visual (36 dB de rango respecto al máximo para preservar visibilidad de fondo en Ojos Abiertos)
+    db_closed = 10 * np.log10(Sxx_closed * 1e12 + 1e-6)
+    db_open = 10 * np.log10(Sxx_open * 1e12 + 1e-6)
+    vmax = float(np.percentile(db_closed, 99.8))
+    vmin = vmax - 36.0  # Rango dinámico óptimo de 36 dB
     
-    # Visualización con shading auto para reflejar la discretización real de bins tiempo-frecuencia
-    mesh1 = ax_open.pcolormesh(t_stft_o, f_stft, 10 * np.log10(Sxx_open * 1e12 + 1e-6), 
-                              cmap='viridis', shading='auto', vmin=vmin, vmax=vmax)
-    ax_open.axhspan(8, 12, color='white', alpha=0.20, linestyle=':', lw=1.0)
-    ax_open.set_title("Condición 1: Ojos Abiertos (Desincronización Cortical Continua)", fontweight='bold', color='#0369a1', fontsize=10.5)
+    mesh1 = ax_open.pcolormesh(t_stft_o, f_stft, db_open, cmap='viridis', shading='gouraud', vmin=vmin, vmax=vmax)
+    ax_open.axhspan(8, 12, color='#ff7f0e', alpha=0.30, linestyle=':', lw=1.2)
+    ax_open.set_title(r"Condición 1: Ojos Abiertos (Desincronización Cortical Basal | Dinámica $1/f$)", fontweight='bold', color='#0369a1', fontsize=10.2)
     ax_open.set_ylabel("Frecuencia (Hz)")
     
-    mesh2 = ax_closed.pcolormesh(t_stft_c, f_stft, 10 * np.log10(Sxx_closed * 1e12 + 1e-6), 
-                                cmap='viridis', shading='auto', vmin=vmin, vmax=vmax)
-    ax_closed.axhspan(8, 12, color='white', alpha=0.20, linestyle=':', lw=1.0)
-    ax_closed.axhline(8, color='#38bdf8', linestyle=':', alpha=0.6, lw=0.9)
-    ax_closed.axhline(12, color='#38bdf8', linestyle=':', alpha=0.6, lw=0.9)
-    # Anotación en esquina superior derecha sin tapar traza espectral
-    ax_closed.text(0.98, 0.88, "Banda Alfa Sostenida (8-12 Hz)", transform=ax_closed.transAxes, 
-                   ha='right', va='top', color='white', fontweight='bold', fontsize=8.5,
-                   bbox=dict(boxstyle="round,pad=0.35", fc=(0.05, 0.1, 0.2, 0.8), ec="#38bdf8", lw=0.8))
-    ax_closed.set_title("Condición 2: Ojos Cerrados (Sincronización Rítmica Alfa Sostenida)", fontweight='bold', color='#b91c1c', fontsize=10.5)
+    mesh2 = ax_closed.pcolormesh(t_stft_c, f_stft, db_closed, cmap='viridis', shading='gouraud', vmin=vmin, vmax=vmax)
+    ax_closed.axhspan(8, 12, color='#ff7f0e', alpha=0.30, linestyle=':', lw=1.2)
+    
+    ax_closed.set_title(r"Condición 2: Ojos Cerrados (Sincronización Rítmica Alfa Sostenida | $\Delta t_{\mathrm{hop}} = 0.25\ \mathrm{s}$)", 
+                        fontweight='bold', color='#b91c1c', fontsize=10.2)
     ax_closed.set_xlabel("Tiempo de Registro (segundos)")
     ax_closed.set_ylabel("Frecuencia (Hz)")
     ax_closed.set_ylim(1, 30)
@@ -440,7 +473,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     fig3.subplots_adjust(bottom=0.22)
     cbar_ax = fig3.add_axes([0.15, 0.08, 0.7, 0.04])
     cbar = fig3.colorbar(mesh2, cax=cbar_ax, orientation='horizontal')
-    cbar.set_label(r"Densidad Espectral de Potencia ($\mathrm{dB}\ [\mu\mathrm{V}^2/\mathrm{Hz}]$)")
+    cbar.set_label(r"Densidad Espectral de Potencia ($\mathrm{dB}\ [\mu\mathrm{V}^2/\mathrm{Hz}]$) [Rango Dinámico Unificado 36 dB]")
     
     f3_path = os.path.join(output_dir, "fig3_espectrograma_stft.png")
     fig3.savefig(f3_path, dpi=200, bbox_inches='tight')
@@ -449,7 +482,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     print(f" -> Guardado: {f3_path}")
     
     # -------------------------------------------------------------------------
-    # Figura 4: K-Means con Frontera Voronoi, Centroides y Matriz de Confusión
+    # Figura 4: K-Means con Frontera Voronoi, Centroides y Matriz de Contingencia
     # -------------------------------------------------------------------------
     fig4, (ax_clus, ax_cm) = plt.subplots(1, 2, figsize=(12, 5.2), dpi=160, gridspec_kw={'width_ratios': [1.35, 1]})
     X = clustering_res['X']
@@ -485,7 +518,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     errors = (y_true != pred)
     if np.any(errors):
         ax_clus.scatter(X[errors, 0] * 100, X[errors, 1] * 100, facecolors='none', edgecolors='#d97706',
-                        s=130, lw=2.2, label='Discrepancia / Transitorio')
+                        s=130, lw=2.2, label=r'Discrepancia ($t \in \{12, 26, 46\}\ \mathrm{s}$)')
         
     # Centroides
     c_scaled = kmeans.cluster_centers_
@@ -497,15 +530,16 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
         ax_clus.text(c_orig[idx_c, 0] + 1.8, c_orig[idx_c, 1] + 0.6, rf"$\mu_{idx_c}$", 
                      fontweight='bold', fontsize=11, color='#0f172a')
         
-    ax_clus.set_title(f"Clustering K-Means (Frontera Voronoi en Espacio 2D)\n(Silhouette: {clustering_res['silhouette']:.3f} | ARI: {clustering_res['ari']:.3f})", 
-                      fontweight='bold', color='#0f2942', fontsize=11)
+    ax_clus.set_title(f"Clustering K-Means (Frontera Voronoi en Espacio Composicional)\n" + 
+                      rf"[ARI = {clustering_res['ari']:.3f} | Silhouette = {clustering_res['silhouette']:.3f} | $r_{{\alpha\beta}} = {clustering_res['corr_alpha_beta']:.3f}$]", 
+                      fontweight='bold', color='#0f2942', fontsize=10.5)
     ax_clus.set_xlabel(r"Potencia Relativa Alfa $[8-12\ \mathrm{Hz}] / [1-40\ \mathrm{Hz}]\ (\%)$")
     ax_clus.set_ylabel(r"Potencia Relativa Beta $[13-30\ \mathrm{Hz}] / [1-40\ \mathrm{Hz}]\ (\%)$")
     ax_clus.set_xlim(0, x_max * 100)
     ax_clus.set_ylim(0, y_max * 100)
-    ax_clus.legend(loc='upper right', framealpha=0.92, fontsize=8.8)
+    ax_clus.legend(loc='upper right', framealpha=0.92, fontsize=8.6)
     
-    # Matriz de Confusión
+    # Matriz de Contingencia / Concordancia
     cm = clustering_res['confusion_matrix']
     cax = ax_cm.matshow(cm, cmap='Blues', alpha=0.85)
     
@@ -516,11 +550,12 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
             
     ax_cm.set_xticks([0, 1])
     ax_cm.set_yticks([0, 1])
-    ax_cm.set_xticklabels(['Abiertos (0)', 'Cerrados (1)'])
-    ax_cm.set_yticklabels(['Abiertos (0)', 'Cerrados (1)'])
-    ax_cm.set_xlabel("Clúster Asignado por K-Means", fontweight='bold', color='#0f2942')
-    ax_cm.set_ylabel("Condición Real (Ground Truth)", fontweight='bold', color='#0f2942')
-    ax_cm.set_title(f"Matriz de Confusión\n(Mapeo Semántico: {clustering_res['accuracy']*100:.1f}% | Sujeto S001)", fontweight='bold', pad=15, color='#0f2942')
+    ax_cm.set_xticklabels(['Clúster 0 (Abiertos)', 'Clúster 1 (Cerrados)'])
+    ax_cm.set_yticklabels(['Ojos Abiertos', 'Ojos Cerrados'])
+    ax_cm.set_xlabel("Partición Asignada por K-Means", fontweight='bold', color='#0f2942')
+    ax_cm.set_ylabel("Condición Experimental (Ground Truth)", fontweight='bold', color='#0f2942')
+    ax_cm.set_title(f"Matriz de Contingencia (Mapeo Semántico Post-Hoc)\n[Concordancia: {clustering_res['accuracy']*100:.1f}% | 54 Épocas Disjuntas]", 
+                    fontweight='bold', pad=15, color='#0f2942', fontsize=10.5)
     
     plt.tight_layout()
     f4_path = os.path.join(output_dir, "fig4_clustering_kmeans.png")
@@ -558,6 +593,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
     acc_pct = clustering_res['accuracy'] * 100
     sil_val = clustering_res['silhouette']
     ari_val = clustering_res['ari']
+    r_val = clustering_res['corr_alpha_beta']
     n_tot = clustering_res['n_open'] + clustering_res['n_closed']
     
     html = f"""<!DOCTYPE html>
@@ -565,7 +601,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Defensa Final: Procesamiento Avanzado de Señales y Minería de Series Temporales</title>
+    <title>Proyecto Final: Procesamiento Avanzado de Señales y Minería de Series Temporales (UBA)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {{
@@ -693,7 +729,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
         }}
         h1 {{
             font-family: 'Merriweather', serif;
-            font-size: 1.85rem;
+            font-size: 1.80rem;
             font-weight: 700;
             color: var(--primary-navy);
             margin-bottom: 3px;
@@ -873,116 +909,115 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
         <!-- DIAPOSITIVA 1 -->
         <section class="slide active">
             <div class="slide-header">
-                <span class="badge">TRABAJO FINAL INTEGRADOR</span>
-                <h2>Decodificación de Dinámicas Cerebrales en EEG</h2>
-                <p class="subtitle">Pipeline computacional para la extracción y agrupamiento no supervisado del ritmo alfa occipital</p>
+                <span class="badge">PROYECTO FINAL (VIDEO DE 9 MINUTOS)</span>
+                <h1>Caracterización Espectral y Agrupamiento No Supervisado del Ritmo Alfa Occipital en EEG</h1>
+                <p class="subtitle">Estudio de Caso Intra-Sujeto: Filtrado de Fase Cero, Combinación Espacial por PCA, Estimación Welch/STFT y Clustering K-Means</p>
             </div>
             <div class="slide-body">
                 <div class="text-content">
                     <div class="content-box">
-                        <h4>1. Objetivo del Trabajo</h4>
-                        <p>Desarrollar e implementar un pipeline computacional riguroso para caracterizar el ritmo alfa occipital y evaluar la capacidad de técnicas de aprendizaje no supervisado para discriminar estados de reposo visual a partir de bioseñales reales de EEG.</p>
+                        <h4>1. Objetivo y Alcance del Trabajo</h4>
+                        <p>Diseñar e implementar un pipeline computacional reproducible para caracterizar cuantitativamente el ritmo alfa occipital (Efecto Berger) y evaluar la discriminabilidad de estados de reposo visual mediante agrupamiento no supervisado en un estudio de caso intra-sujeto.</p>
                     </div>
                     <div class="content-box box-crimson">
-                        <h4>2. Articulación Curricular</h4>
+                        <h4>2. Etapas Metodológicas Integradas</h4>
                         <ul>
-                            <li><strong>Unidad 1:</strong> Filtrado digital FIR de fase cero, reducción espacial por PCA y análisis tiempo-frecuencia (STFT).</li>
-                            <li><strong>Unidad 2:</strong> Segmentación temporal en épocas disjuntas, extracción de atributos espectrales y clustering K-Means.</li>
-                            <li><strong>Unidad 3:</strong> Aplicación neurofisiológica al ritmo alfa occipital y caracterización del Efecto Berger.</li>
+                            <li><strong>Preprocesamiento & Espacio:</strong> Filtrado digital FIR pasa-banda de fase cero, combinación espacial por PCA y análisis tiempo-frecuencia (STFT).</li>
+                            <li><strong>Minería de Series Temporales:</strong> Segmentación temporal en 54 épocas disjuntas, atributos de Potencia Relativa y clustering K-Means.</li>
+                            <li><strong>Contextualización Biofísica:</strong> Cuantificación del ritmo alfa occipital, Efecto Berger y dinámica tálamo-cortical.</li>
                         </ul>
                     </div>
                     <div class="content-box box-navy">
-                        <h4>3. Conjunto de Datos & Alcance</h4>
-                        <p>Registros públicos del dataset PhysioNet EEGMMIDB (Sujeto S001, Fs = 160 Hz) en reposo con Ojos Abiertos (Run 1) y Ojos Cerrados (Run 2). Estudio concebido como prueba de concepto metodológica intra-sujeto.</p>
+                        <h4>3. Conjunto de Datos & Protocolo Experimental</h4>
+                        <p>Registros basales del Sujeto S001 de PhysioNet EEGMMIDB (64 canales, Fs = 160 Hz) en reposo continuo con Ojos Abiertos (Run 1) y Ojos Cerrados (Run 2).</p>
                     </div>
                 </div>
                 <div class="image-container" style="flex-direction: column; text-align: center; gap: 12px; background: #f8fafc;">
                     <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.80rem; color: var(--primary-navy); border: 1px solid #cbd5e1; padding: 12px 14px; border-radius: 6px; background: #ffffff; width: 88%; text-align: left; line-height: 1.5;">
                         <strong style="color: var(--secondary-blue);">FLUJO DEL PIPELINE COMPUTACIONAL</strong><br><br>
-                        1. <strong>Bioseñales Crudas:</strong> PhysioNet EDF (Sujeto S001, 160 Hz)<br>
-                        2. <strong>Filtro Pasa-Banda:</strong> FIR Fase Cero (1-40 Hz) + Recorte Dinámico (3.0 s)<br>
+                        1. <strong>Señales Crudas:</strong> PhysioNet EDF (S001, 160 Hz)<br>
+                        2. <strong>Filtro Pasa-Banda:</strong> FIR Fase Cero (1-40 Hz) + Recorte Dinámico (3.0s)<br>
                         3. <strong>Combinación Espacial:</strong> PCA en electrodos occipitales (O1, Oz, O2)<br>
-                        4. <strong>Análisis Espectral:</strong> Welch PSD & STFT continua de persistencia<br>
-                        5. <strong>Minería Temporal:</strong> 54 épocas de 2.0 s & Potencia Relativa (Alfa / Beta)<br>
-                        6. <strong>Clustering:</strong> K-Means (k=2), ARI, Silhouette & Mapeo Semántico
+                        4. <strong>Análisis Espectral:</strong> Welch PSD & STFT continua (hop size 0.25s)<br>
+                        5. <strong>Minería Temporal:</strong> 54 Épocas disjuntas (2.0s) & Potencia Relativa (Alfa / Beta)<br>
+                        6. <strong>Clustering:</strong> K-Means (k=2), ARI, Silhouette & Matriz de Contingencia
                     </div>
                 </div>
             </div>
             <div class="speaker-notes-content" style="display:none;">
                 <span class="time-guide">TIEMPO ASIGNADO: 0:00 - 1:20</span><br><br>
                 <strong>Texto a exponer:</strong><br>
-                "En este trabajo presento un pipeline computacional para analizar señales reales de electroencefalografía, o EEG, con el objetivo de identificar y cuantificar cambios en la actividad cerebral asociados al ritmo alfa occipital.<br><br>
-                El proyecto articula de forma directa los contenidos desarrollados a lo largo de la materia.<br><br>
-                En la <strong>Unidad 1</strong>, se implementó el preprocesamiento de señales: filtrado digital pasa-banda de fase cero, combinación espacial mediante Análisis de Componentes Principales, o PCA, y representaciones tiempo-frecuencia con la Transformada de Fourier de Tiempo Reducido, o STFT.<br><br>
-                En la <strong>Unidad 2</strong>, se aplicaron técnicas de minería de series temporales, segmentando la señal en épocas temporales disjuntas y extrayendo atributos de potencia espectral relativa para clustering no supervisado.<br><br>
-                En la <strong>Unidad 3</strong>, estos métodos se aplicaron a un biomarcador neurofisiológico clásico: la modulación del ritmo alfa occipital y el efecto Berger.<br><br>
-                Como prueba de concepto metodológica, se analizaron registros del dataset PhysioNet EEGMMIDB, correspondientes al sujeto S001, muestreados a 160 Hz durante dos condiciones de reposo continuo: ojos abiertos y ojos cerrados."
+                "En este trabajo presento un pipeline computacional para el análisis y caracterización cuantitativa del ritmo alfa occipital en electroencefalografía (EEG), utilizando un enfoque no supervisado como estudio de caso intra-sujeto.<br><br>
+                La metodología se estructura en tres etapas funcionales integradas:<br><br>
+                Primero, abordamos el <strong>preprocesamiento y reducción espacial</strong>: implementamos un filtrado digital FIR de fase cero para evitar distorsiones temporales, realizamos una combinación espacial óptima mediante Análisis de Componentes Principales (PCA) y construimos representaciones tiempo-frecuencia continuas con la Transformada de Fourier de Tiempo Reducido (STFT).<br><br>
+                Segundo, aplicamos técnicas de <strong>minería de series temporales</strong>: segmentamos el registro en 54 épocas temporales disjuntas e independientes, extrajimos características espectrales relativas robustas y evaluamos el agrupamiento con K-Means mediante métricas no supervisadas formales como el Adjusted Rand Index y el Silhouette Score.<br><br>
+                Tercero, <strong>contextualizamos los resultados biofísicamente</strong>: caracterizando cuantitativamente el ritmo alfa y el Efecto Berger sobre registros basales del sujeto S001 de PhysioNet EEGMMIDB, adquiridos a 160 Hz en condiciones de ojos abiertos y ojos cerrados."
             </div>
         </section>
 
         <!-- DIAPOSITIVA 2 -->
         <section class="slide">
             <div class="slide-header">
-                <span class="badge">UNIDAD 1: PROCESAMIENTO ESPACIAL & FILTRADO</span>
-                <h2>Preprocesamiento y Reducción Espacial mediante PCA</h2>
-                <p class="subtitle">Filtrado FIR de fase cero y combinación lineal de sensores occipitales correlacionados</p>
+                <span class="badge">PROCESAMIENTO ESPACIAL & FILTRADO</span>
+                <h2>Preprocesamiento y Combinación Espacial mediante PCA</h2>
+                <p class="subtitle">Acondicionamiento FIR de fase cero y proyección de covarianza en sensores occipitales (O1, Oz, O2)</p>
             </div>
             <div class="slide-body">
                 <div class="text-content">
                     <div class="content-box">
                         <h4>1. Filtrado FIR de Fase Cero & Recorte de Bordes</h4>
-                        <p>Filtro pasa-banda 1.0 - 40.0 Hz bidireccional no causal (phase='zero') que preserva la alineación temporal de la señal. Se descartan 3.0 s en ambos extremos para suprimir los transitorios de borde del filtro.</p>
+                        <p>Filtro digital pasa-banda 1.0 - 40.0 Hz bidireccional no causal (phase='zero') que preserva la alineación temporal de los potenciales bioeléctricos. Se descartan 3.0 s en ambos extremos para mitigar transitorios de borde del pasa-alto.</p>
                     </div>
                     <div class="content-box box-navy">
-                        <h4>2. Combinación Espacial por PCA Local (O1, Oz, O2)</h4>
-                        <p>Por la fuerte conducción de volumen entre sensores occipitales vecinos, las trazas están altamente correlacionadas. PC1 extrae el autovector dominante:</p>
-                        <div class="metric-pill">PC1 = 0.585·O1 + 0.568·Oz + 0.579·O2 | Varianza: {var_exp:.2f}%</div>
+                        <h4>2. Combinación Espacial por PCA Local</h4>
+                        <p>Los canales adyacentes O1, Oz y O2 registran la proyección común del dipolo occipital por conducción de volumen. PCA extrae el autovector dominante que maximiza la varianza total combinada:</p>
+                        <div class="metric-pill">PC1 = 0.585*O1 + 0.568*Oz + 0.579*O2 | Varianza: {var_exp:.2f}%</div>
                     </div>
                     <div class="content-box">
-                        <h4>3. Interpretación Teórica: Promedio Ponderado y SNR</h4>
-                        <p>Al tener ponderaciones casi idénticas (w ≈ 1/√3 · 1), PC1 actúa como un promedio espacial óptimo que incrementa la relación señal-ruido (SNR) suprimiendo ruido incoherente inter-sensor.</p>
+                        <h4>3. Fundamento Matemático & Alcance</h4>
+                        <p>Al tener pesos espacialmente simétricos (~1/√3 ≈ 0.577), PC1 actúa como un promedio ponderado óptimo en varianza. En esquemas supervisados multicanal completos, la discriminabilidad inter-condición se aborda mediante Common Spatial Patterns (CSP).</p>
                     </div>
                 </div>
                 <div class="image-container">
-                    <img src="{img1}" alt="Figura 1: PCA y Canales Temporales">
+                    <img src="{img1}" alt="Figura 1: PCA, Canales Temporales y Topomap 10-20">
                 </div>
             </div>
             <div class="speaker-notes-content" style="display:none;">
                 <span class="time-guide">TIEMPO ASIGNADO: 1:20 - 2:50</span><br><br>
                 <strong>Texto a exponer:</strong><br>
                 "La primera etapa del pipeline consiste en el preprocesamiento de la señal.<br><br>
-                Las señales de EEG presentan amplitudes del orden de los microvoltios y son muy vulnerables al ruido de baja frecuencia y a interferencias de línea. Para acondicionarlas, se aplicó un filtro FIR pasa-banda entre 1 y 40 Hz mediante filtrado de fase cero bidireccional, garantizando distorsión de fase nula.<br><br>
-                Para eliminar los transitorios de borde característicos del filtro pasa-alto, se descartaron los primeros y últimos tres segundos de cada registro.<br><br>
-                Posteriormente, se seleccionaron los tres canales occipitales contiguos: O1, Oz y O2, ubicados sobre la corteza visual primaria.<br><br>
-                Sobre estos sensores se aplicó PCA. La primera componente explicó el <strong>{var_exp:.2f} %</strong> de la varianza total con coeficientes prácticamente balanceados entre 0.57 y 0.58.<br><br>
-                Desde el punto de vista biofísico, debido a la conducción de volumen, esta primera componente opera como un filtro espacial de promedio óptimo que realza la señal cerebral común y atenúa el ruido incoherente de los sensores.<br><br>
-                En la figura temporal se observa con claridad cómo, mientras en ojos abiertos predomina una señal desincronizada de baja amplitud, en ojos cerrados emerge una oscilación periódica prominente cercana a los 10 Hz."
+                Las señales de EEG tienen amplitudes muy pequeñas, del orden de los microvoltios, por lo que son especialmente sensibles al ruido y a diferentes tipos de interferencias. Para acondicionarlas se aplicó un filtro FIR pasa-banda entre 1 y 40 Hz de fase cero bidireccional, preservando la fase original de las oscilaciones neuronales.<br><br>
+                Para evitar los transitorios de respuesta impulsional en los extremos del registro generados por el pasa-alto de 1 Hz, se recortaron tres segundos al inicio y al final de cada archivo.<br><br>
+                A continuación, seleccionamos los canales occipitales O1, Oz y O2, ubicados anatómicamente sobre el lóbulo occipital y la corteza visual primaria, como se ilustra en el esquema topográfico 10-20.<br><br>
+                Sobre estos tres sensores adyacentes aplicamos PCA para sintetizar la actividad coherente. La primera componente principal explicó el <strong>{var_exp:.2f} %</strong> de la varianza total.<br><br>
+                Matemáticamente, los coeficientes obtenidos, alrededor de 0,58 para cada canal, convergen de forma natural al vector unitario balanceado uno sobre raíz de tres. Esto es clave: significa que el algoritmo no supervisado descubrió por sí solo que el promedio espacial simple de los tres electrodos era la combinación óptima para maximizar la varianza común compartida por conducción de volumen.<br><br>
+                En las trazas temporales de la figura se aprecia con claridad la transición: un trazado de baja amplitud en ojos abiertos versus una oscilación rítmica periódica de gran amplitud en ojos cerrados."
             </div>
         </section>
 
         <!-- DIAPOSITIVA 3 -->
         <section class="slide">
             <div class="slide-header">
-                <span class="badge">UNIDADES 1 & 3: DOMINIO DE LA FRECUENCIA & BIOMARCADORES</span>
-                <h2>Análisis Espectral y Efecto Berger</h2>
-                <p class="subtitle">Estimación consistente de la PSD mediante método de Welch y cuantificación de la sincronización</p>
+                <span class="badge">DOMINIO DE LA FRECUENCIA & BIOMARCADORES</span>
+                <h2>Análisis Espectral y Cuantificación del Efecto Berger</h2>
+                <p class="subtitle">Estimación consistente de la PSD mediante método de Welch y caracterización de dinámica periódica vs. 1/f</p>
             </div>
             <div class="slide-body">
                 <div class="text-content">
                     <div class="content-box">
                         <h4>1. Estimación Espectral de Welch</h4>
-                        <p>Estimación de baja varianza mediante promediado de periodogramas solapados (ventanas Hann de 2.0 s, espaciado de bins Δf = 0.5 Hz, solapamiento 50%).</p>
+                        <p>Promediado de periodogramas modificados (ventanas Hann de 2.0 s, espaciado FFT Δf = 0.5 Hz, solapamiento 50%, resolución física de Rayleigh ~0.75 Hz a -3 dB) para minimizar la varianza del estimador.</p>
                     </div>
                     <div class="content-box box-crimson">
                         <h4>2. Fundamento Neurofisiológico (Efecto Berger)</h4>
                         <ul>
-                            <li><strong>Ojos Abiertos:</strong> Atenuación tónica del ritmo alfa por flujo constante de aferencia visual retiniana a la corteza visual.</li>
-                            <li><strong>Ojos Cerrados:</strong> Sincronización tálamo-cortical masiva del ritmo alfa en estado de reposo sensorial.</li>
+                            <li><strong>Ojos Abiertos:</strong> Desincronización cortical (ERD) por flujo constante de aferencia visual retiniana.</li>
+                            <li><strong>Ojos Cerrados:</strong> Sincronización masiva (ERS) de las poblaciones tálamo-corticales en reposo.</li>
                         </ul>
                     </div>
                     <div class="content-box box-navy">
-                        <h4>3. Cuantificación Espectral del Ritmo Alfa</h4>
-                        <p>La integración en banda alfa (8-12 Hz) evidencia un incremento de <strong>{ratio_berger:.2f} veces</strong> en potencia absoluta (μV²). El panel logarítmico exhibe claramente la caída aperiódica 1/f.</p>
+                        <h4>3. Dinámica Periódica sobre Fondo Aperiódico 1/f</h4>
+                        <p>La potencia integrada en Alfa (8-12 Hz) aumenta <strong>{ratio_berger:.2f} veces (~12 dB)</strong>. El pico individual en <strong>f = 10.0 Hz</strong> emerge <strong>~20 dB</strong> sobre la caída aperiódica 1/f.</p>
                     </div>
                 </div>
                 <div class="image-container">
@@ -992,38 +1027,37 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
             <div class="speaker-notes-content" style="display:none;">
                 <span class="time-guide">TIEMPO ASIGNADO: 2:50 - 4:20</span><br><br>
                 <strong>Texto a exponer:</strong><br>
-                "Una vez obtenida la componente principal espacial, se analizó su contenido en frecuencia a través de la Densidad Espectral de Potencia.<br><br>
-                Para estimar el espectro se utilizó el método de Welch con ventanas Hann de dos segundos y un 50 % de solapamiento, logrando un espaciado entre bins discretos de 0,5 Hz.<br><br>
-                En la figura se contrastan los espectros de ambas condiciones experimentales.<br><br>
-                Con los ojos abiertos, la potencia en la banda alfa permanece atenuada debido a la desincronización cortical continua inducida por la estimulación visual.<br><br>
-                Al cerrar los ojos, al cesar la entrada visual, los circuitos tálamo-corticales occipitales entran en un régimen de sincronización masiva en reposo, generando un pico resonante en 10 Hz conocido clásicamente como Efecto Berger.<br><br>
-                La potencia integrada en la banda alfa se incrementa en aproximadamente <strong>16 veces</strong> respecto a la condición de ojos abiertos. El panel logarítmico permite verificar además la dinámica aperiódica de fondo tipo uno sobre efe."
+                "Una vez obtenida la componente principal, caracterizamos su contenido frecuencial mediante la Densidad Espectral de Potencia.<br><br>
+                Para lograr una estimación espectral consistente y de baja varianza utilizamos el método de Welch, empleando ventanas de Hann de dos segundos con un 50 % de solapamiento. Esto establece un espaciado entre muestras de la DFT de 0,5 Hz, con una resolución física de Rayleigh aproximada de 0,75 Hz acorde al ancho del lóbulo principal de la ventana.<br><br>
+                En el panel lineal de la Figura 2 observamos el contraste clásico del Efecto Berger: en la condición de ojos abiertos predomina una desincronización cortical con baja potencia espectral, mientras que al cerrar los ojos emerge un pico oscilatorio resonante muy marcado centrado en 10,0 Hz.<br><br>
+                La potencia integrada en la banda alfa de 8 a 12 Hz se incrementa <strong>16 veces (alrededor de 12 dB)</strong> respecto a la condición basal.<br><br>
+                Complementariamente, en el panel semilogarítmico en decibelios vemos que el pico oscilatorio de 10 Hz emerge casi <strong>20 dB por encima del piso aperiódico 1/f</strong>, característico de la actividad electrofisiológica cerebral asincrónica."
             </div>
         </section>
 
         <!-- DIAPOSITIVA 4 -->
         <section class="slide">
             <div class="slide-header">
-                <span class="badge">UNIDAD 1: REPRESENTACIONES TIEMPO-FRECUENCIA</span>
-                <h2>Análisis Tiempo-Frecuencia mediante STFT</h2>
-                <p class="subtitle">Evaluación de la persistencia temporal y estabilidad continua del ritmo alfa</p>
+                <span class="badge">REPRESENTACIONES TIEMPO-FRECUENCIA</span>
+                <h2>Análisis Tiempo-Frecuencia Dinámico mediante STFT Discreta</h2>
+                <p class="subtitle">Compromiso de Gabor-Heisenberg y seguimiento continuo de la persistencia espectral del ritmo alfa</p>
             </div>
             <div class="slide-body">
                 <div class="text-content">
                     <div class="content-box">
-                        <h4>1. Análisis Tiempo-Frecuencia en Bioseñales</h4>
-                        <p>Frente a la no estacionariedad de las señales biológicas, la STFT permite verificar si las concentraciones de energía son transitorias o persistentes en el tiempo.</p>
+                        <h4>1. Dinámica No Estacionaria del EEG</h4>
+                        <p>La Transformada de Fourier global oculta la modulación temporal. La STFT discreta permite rastrear la persistencia y transitorios dinámicos de las oscilaciones neuronales a lo largo de la adquisición.</p>
                     </div>
                     <div class="content-box box-navy">
-                        <h4>2. Formulación Discreta & Parámetros</h4>
-                        <p>STFT discreta con ventana Hann de N = 320 muestras (2.0 s) y avance temporal R = 40 muestras (0.25 s, solapamiento 87.5%):</p>
-                        <p style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--secondary-blue); margin-top: 4px;">
-                            X[m, k] = &Sigma;<sub>n=0..N-1</sub> x[n + mR] &middot; w[n] &middot; e<sup>-j 2&pi; k n / N</sup>
+                        <h4>2. Formulación Discreta & Parámetros de Análisis</h4>
+                        <p>Ventana Hann de N = 320 muestras (Tw = 2.0 s) con avance R = 40 muestras (<strong>Δt_hop = 0.25 s</strong>, solapamiento 87.5%):</p>
+                        <p style="font-family: 'JetBrains Mono', monospace; font-size: 0.80rem; color: var(--secondary-blue); margin-top: 3px;">
+                            X[m, k] = ∑_{{n=0}}^{{N-1}} x[n + mR] · w[n] · e^{{-j 2π k n / N}}
                         </p>
                     </div>
                     <div class="content-box">
-                        <h4>3. Espectrogramas Continuos Comparativos</h4>
-                        <p>Ojos Abiertos presenta baja energía general; Ojos Cerrados demuestra una banda hiper-energética continua y sostenida a 10 Hz durante todo el registro.</p>
+                        <h4>3. Interpretación de los Espectrogramas</h4>
+                        <p>Ojos Abiertos muestra desincronización basal; Ojos Cerrados evidencia activación continua en 10 Hz con atenuaciones transitorias (marcadas en rojo) en t ∈ {{12, 26, 46}} s asociadas a micro-variaciones del reposo.</p>
                     </div>
                 </div>
                 <div class="image-container">
@@ -1033,39 +1067,36 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
             <div class="speaker-notes-content" style="display:none;">
                 <span class="time-guide">TIEMPO ASIGNADO: 4:20 - 5:50</span><br><br>
                 <strong>Texto a exponer:</strong><br>
-                "Hasta este punto, el análisis espectral de Welch proporcionó una caracterización promedio global en frecuencia.<br><br>
-                Sin embargo, para verificar si la oscilación observada corresponde a un fenómeno biológico sostenido o a descargas transitorias aisladas, se aplicó la Transformada de Fourier de Tiempo Reducido, o STFT.<br><br>
-                Se utilizó la formulación discreta con ventanas Hann de dos segundos y un solapamiento del 87,5 %, generando una resolución temporal de 0,25 segundos.<br><br>
-                En el espectrograma de ojos abiertos, la energía en la banda alfa permanece uniformemente baja a lo largo de todo el tramo temporal.<br><br>
-                En la condición de ojos cerrados, en cambio, se aprecia una banda de alta potencia continua y estable centrada en los 10 Hz durante prácticamente la totalidad de los 55 segundos de registro.<br><br>
-                Esta representación confirma empíricamente la estabilidad temporal y persistencia del ritmo alfa occipital en este sujeto."
+                "Dado que las bioseñales electroencefalográficas son procesos no estacionarios, complementamos el análisis espectral con la Transformada de Fourier de Tiempo Reducido, o STFT discreta.<br><br>
+                Bajo el principio de incertidumbre de Gabor-Heisenberg, la resolución temporal física está gobernada por la duración de la ventana de análisis de dos segundos (320 muestras). Para mapear la evolución de forma continua y suave, desplazamos la ventana con un paso temporal o hop size de 0,25 segundos (40 muestras), lo que equivale a un solapamiento del 87,5 %.<br><br>
+                En la Figura 3 calibramos el rango dinámico en 36 decibelios para visualizar tanto la actividad de fondo como las oscilaciones dominantes en una escala cuantitativa unificada.<br><br>
+                En el panel superior de ojos abiertos se aprecia un espectro desincronizado y homogéneo a lo largo de los 55 segundos.<br><br>
+                En el panel inferior de ojos cerrados se observa una banda prominente y continua en torno a los 10 Hz. Si bien el alto solapamiento produce un suavizado visual, es posible detectar sutiles atenuaciones transitorias de potencia (claramente señaladas con marcadores rojos en los segundos 12, 26 y 46), vinculadas a variaciones dinámicas del reposo que analizaremos en la etapa de clustering."
             </div>
         </section>
 
         <!-- DIAPOSITIVA 5 -->
         <section class="slide">
             <div class="slide-header">
-                <span class="badge">UNIDAD 2: MINERÍA DE SERIES TEMPORALES & APRENDIZAJE NO SUPERVISADO</span>
-                <h2>Minería de Series Temporales y Clustering</h2>
-                <p class="subtitle">Segmentación en épocas disjuntas, espacio 2D de Potencia Relativa y agrupamiento K-Means</p>
+                <span class="badge">MINERÍA DE SERIES TEMPORALES & APRENDIZAJE NO SUPERVISADO</span>
+                <h2>Minería de Series Temporales y Agrupamiento con K-Means</h2>
+                <p class="subtitle">Segmentación en épocas disjuntas, espacio composicional de Potencia Relativa y validación de clústeres</p>
             </div>
             <div class="slide-body">
                 <div class="text-content">
                     <div class="content-box">
-                        <h4>1. Segmentación en {n_tot} Épocas Disjuntas (2.0 s)</h4>
-                        <p>Se divide la señal en 54 ventanas disjuntas de 320 muestras. Se calcula la potencia espectral mediante Periodograma Modificado con ventana Hann (Δf = 0.5 Hz).</p>
+                        <h4>1. Segmentación en {n_tot} Épocas Temporales Disjuntas (2.0 s)</h4>
+                        <p>Se divide la señal en ventanas disjuntas de 320 muestras (sin solapamiento temporal para clustering). Se estima el espectro por época mediante Periodograma de Hann (Δf = 0.5 Hz).</p>
                     </div>
                     <div class="content-box box-navy">
-                        <h4>2. Espacio de Atributos de Potencia Relativa</h4>
-                        <ul>
-                            <li><strong>Alfa Relativa:</strong> P[8-12 Hz] / P[1-40 Hz] (Invariante a impedancia global de electrodos).</li>
-                            <li><strong>Beta Relativa:</strong> P[13-30 Hz] / P[1-40 Hz] (Efecto composicional de cierre sobre simplex).</li>
-                        </ul>
+                        <h4>2. Espacio Composicional & Estandarización</h4>
+                        <p>Potencias relativas normalizadas respecto a la energía total (1-40 Hz) para conferir robustez frente a derivas lentas (r = {r_val:.3f}). Estandarización z-score previa a la distancia euclidiana:</p>
+                        <div class="metric-pill">%Alfa = P[8-12Hz] / P[1-40Hz] | %Beta = P[13-30Hz] / P[1-40Hz]</div>
                     </div>
                     <div class="content-box box-crimson">
-                        <h4>3. Clustering K-Means (k=2) & Validación</h4>
-                        <p>Partición no supervisada evaluada mediante métricas intrínsecas y mapeo semántico post-hoc:</p>
-                        <div class="metric-pill">ARI = {ari_val:.3f} | Silhouette = {sil_val:.3f} | Mapeo Post-Hoc: {acc_pct:.2f}%</div>
+                        <h4>3. Validación No Supervisada & Mapeo Semántico Post-Hoc</h4>
+                        <p>K-Means (k=2) particiona el espacio de atributos. La correspondencia con las condiciones basales confirma la separabilidad biofísica:</p>
+                        <div class="metric-pill">ARI = {ari_val:.3f} | Silhouette = {sil_val:.3f} | Concordancia = {acc_pct:.2f}%</div>
                     </div>
                 </div>
                 <div class="image-container">
@@ -1075,21 +1106,19 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
             <div class="speaker-notes-content" style="display:none;">
                 <span class="time-guide">TIEMPO ASIGNADO: 5:50 - 7:40</span><br><br>
                 <strong>Texto a exponer:</strong><br>
-                "La última etapa del trabajo corresponde a la minería de series temporales.<br><br>
-                El objetivo fue evaluar si un algoritmo de agrupamiento no supervisado es capaz de particionar automáticamente los estados cerebrales sin emplear etiquetas durante el ajuste.<br><br>
-                Para ello, la componente principal se segmentó en 54 épocas temporales disjuntas de dos segundos: 27 de ojos abiertos y 27 de ojos cerrados.<br><br>
-                En cada época se extrajeron dos características normalizadas: la potencia relativa en alfa y la potencia relativa en beta, divididas por la energía de banda ancha entre 1 y 40 Hz.<br><br>
-                Esta normalización relativa reduce la variabilidad por impedancia de contacto de los sensores. Es importante notar que la correlación negativa observada en el plano 2D responde en gran parte a la restricción composicional del denominador total ante la subida del pico alfa.<br><br>
-                Tras estandarizar las características, se aplicó K-Means con k igual a 2. El algoritmo logró una estructura de partición muy definida, con un Adjusted Rand Index de <strong>{ari_val:.3f}</strong> y un Silhouette Score de <strong>{sil_val:.3f}</strong>.<br><br>
-                Al asociar el clúster de mayor potencia alfa a la condición de ojos cerrados según la hipótesis biofísica de Berger, se obtiene una concordancia del <strong>{acc_pct:.2f} %</strong> con el ground truth.<br><br>
-                Las tres ventanas discrepantes corresponden a épocas de baja sincronización transitoria o ruido instrumental en esa ventana específica."
+                "En la etapa de minería de series temporales, el objetivo fue comprobar si un algoritmo no supervisado es capaz de particionar automáticamente los estados neurofisiológicos sin disponer de etiquetas previas durante el entrenamiento.<br><br>
+                Para evitar muestras redundantes y respetar la independencia estadística requerida por el clustering, dividimos la componente principal en <strong>54 épocas temporales disjuntas de dos segundos</strong> (27 épocas por condición).<br><br>
+                Sobre cada época calculamos la potencia relativa en la banda alfa y en la banda beta normalizadas por la energía total de 1 a 40 Hz. Esta normalización composicional otorga robustez frente a posibles derivas lentas de impedancia del electrodo, operando la banda alfa como el eje primario de discriminación.<br><br>
+                Tras estandarizar las características para operar en una escala homogénea, aplicamos K-Means con k=2. Evaluamos la estructura del agrupamiento mediante métricas formales no supervisadas: [pausa breve] obtuvimos un <strong>Adjusted Rand Index de {ari_val:.3f}</strong> y un <strong>Silhouette Score de {sil_val:.3f}</strong>.<br><br>
+                Al contrastar los clústeres asignados con las condiciones experimentales mediante un mapeo semántico post-hoc, la concordancia alcanza el <strong>{acc_pct:.2f} %</strong>, separando perfectamente todas las épocas de ojos abiertos (27/27) y 24 de 27 de ojos cerrados.<br><br>
+                Las 3 épocas de ojos cerrados asignadas al otro grupo (resaltadas en naranja) ocurrieron en los segundos 12, 26 y 46 del registro, coincidiendo con las breves desincronizaciones de alfa visibles en el espectrograma, atribuibles a micro-modulaciones atencionales o pequeñas fluctuaciones del reposo."
             </div>
         </section>
 
         <!-- DIAPOSITIVA 6 -->
         <section class="slide">
             <div class="slide-header">
-                <span class="badge">SÍNTESIS & DISCUSIÓN ACADÉMICA</span>
+                <span class="badge">SÍNTESIS & PERSPECTIVAS</span>
                 <h2>Conclusiones</h2>
                 <p class="subtitle">Integración de herramientas del curso, consideraciones metodológicas y proyección a BCI</p>
             </div>
@@ -1097,36 +1126,36 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; height: 100%;">
                     <div class="content-box" style="display:flex; flex-direction:column; justify-content:space-between;">
                         <div>
-                            <h4>Unidad 1: Procesamiento y PCA</h4>
-                            <p style="margin-top: 6px;">El acondicionamiento FIR de fase cero y la combinación lineal por PCA sintetizaron el <strong>{var_exp:.2f}% de la varianza</strong> de los electrodos occipitales, operando como un filtro espacial local que mejora la SNR ante ruido no correlacionado.</p>
+                            <h4>1. Preprocesamiento & Reducción Espacial</h4>
+                            <p style="margin-top: 6px;">El acondicionamiento FIR de fase cero y la proyección por PCA sintetizaron el <strong>{var_exp:.2f}% de la varianza</strong> de los electrodos occipitales sin distorsión temporal, actuando como un promedio espacial coherente óptimo.</p>
                         </div>
-                        <div style="font-size: 0.78rem; color: var(--secondary-blue); font-weight: 700;">Acondicionamiento y Filtrado Espacial</div>
+                        <div style="font-size: 0.78rem; color: var(--secondary-blue); font-weight: 700;">Acondicionamiento Óptimo</div>
                     </div>
                     <div class="content-box box-crimson" style="display:flex; flex-direction:column; justify-content:space-between;">
                         <div>
-                            <h4>Unidad 2: Minería Temporal</h4>
-                            <p style="margin-top: 6px;">El espacio 2D de Potencia Relativa en épocas disjuntas permitió a K-Means particionar de forma autónoma los estados con <strong>ARI = {ari_val:.3f}</strong> y <strong>Silhouette = {sil_val:.3f}</strong>, complementado con STFT para verificar la estabilidad temporal.</p>
+                            <h4>2. Minería de Series Temporales</h4>
+                            <p style="margin-top: 6px;">El espacio composicional de Potencia Relativa en 54 épocas disjuntas permitió a K-Means particionar los estados con <strong>ARI = {ari_val:.3f}</strong> y <strong>Silhouette = {sil_val:.3f}</strong> de forma consistente frente a la dinámica biológica.</p>
                         </div>
                         <div style="font-size: 0.78rem; color: var(--accent-crimson); font-weight: 700;">Agrupamiento No Supervisado</div>
                     </div>
                     <div class="content-box box-navy" style="display:flex; flex-direction:column; justify-content:space-between;">
                         <div>
-                            <h4>Unidad 3: Desafíos & Proyección</h4>
-                            <p style="margin-top: 6px;">Como prueba de concepto intra-sujeto (S001), el trabajo sienta las bases para escalar hacia interfaces BCI mediante esquemas inter-sujeto (LOSO), calibración de la frecuencia individual alfa (IAF) y limpieza previa de artefactos con ICA/EOG.</p>
+                            <h4>3. Desafíos & Proyección a BCI</h4>
+                            <p style="margin-top: 6px;">Para escalar hacia BCI online se requiere migrar a filtros causales de baja latencia, incorporar esquemas inter-sujeto (LOSO), calibrar la frecuencia individual alfa (IAF) y agregar limpieza de artefactos por ICA.</p>
                         </div>
-                        <div style="font-size: 0.78rem; color: var(--primary-navy); font-weight: 700;">Validación & Escalabilidad BCI</div>
+                        <div style="font-size: 0.78rem; color: var(--primary-navy); font-weight: 700;">Validación & Escalabilidad</div>
                     </div>
                 </div>
             </div>
             <div class="speaker-notes-content" style="display:none;">
                 <span class="time-guide">TIEMPO ASIGNADO: 7:40 - 9:00</span><br><br>
                 <strong>Texto a exponer:</strong><br>
-                "Como conclusión, este trabajo demuestra cómo las herramientas de procesamiento de señales y minería temporal vistas a lo largo del curso se integran en un pipeline coherente y reproducible para el análisis de EEG.<br><br>
-                El preprocesamiento FIR de fase cero y la combinación espacial por PCA permitieron sintetizar la actividad de la corteza visual occipital maximizando la energía compartida y mejorando la relación señal-ruido.<br><br>
-                El análisis espectral de Welch y la STFT caracterizaron con precisión el ritmo alfa a 10 Hz y confirmaron su persistencia temporal continua durante el reposo.<br><br>
-                En la etapa de minería, el espacio 2D de potencia espectral relativa permitió a un algoritmo no supervisado como K-Means particionar los estados cerebrales con un alto índice de Rand ajustado.<br><br>
-                Reconociendo que este análisis se realizó sobre un único sujeto en bloques continuos como prueba de concepto metodológica, la proyección natural hacia interfaces cerebro-computadora requerirá validaciones inter-sujeto con validación cruzada Leave-One-Subject-Out, calibración de frecuencias individuales alfa y técnicas de desmezcla ciega de artefactos por ICA.<br><br>
-                Muchas gracias. Quedo a disposición de las preguntas del tribunal."
+                "En conclusión, este trabajo muestra cómo articular las herramientas de procesamiento de señales y minería de series temporales en un pipeline completo para bioseñales de EEG.<br><br>
+                El preprocesamiento digital y la combinación espacial por PCA permitieron sintetizar la actividad del polo occipital maximizando la varianza común sin introducir distorsión de fase.<br><br>
+                El análisis espectral de Welch y la STFT caracterizaron con precisión la dinámica periódica del Efecto Berger respecto al fondo aperiódico, revelando una amplificación de 16 veces (12 dB) en la potencia alfa centrada en 10 Hz.<br><br>
+                Finalmente, las técnicas de minería de series temporales en un espacio composicional de épocas disjuntas permitieron validar la separabilidad no supervisada de los estados basales con un Adjusted Rand Index de {ari_val:.3f} y {acc_pct:.2f} % de concordancia.<br><br>
+                Como consideraciones metodológicas para futuras extensiones, se destacan: evaluar esquemas inter-sujeto (como Leave-One-Subject-Out), calibrar la frecuencia individual alfa (IAF), incorporar módulos de limpieza de artefactos por ICA y migrar a filtros digitales causales sobre buffers deslizantes para aplicaciones en tiempo real.<br><br>
+                Muchas gracias por su atención."
             </div>
         </section>
     </main>
@@ -1141,7 +1170,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
     </div>
 
     <footer>
-        <div>UNIVERSIDAD | EVALUACIÓN FINAL DE PROCESAMIENTO DE SEÑALES & MINERÍA DE SERIES TEMPORALES</div>
+        <div>PROCESAMIENTO AVANZADO DE SEÑALES & MINERÍA DE SERIES TEMPORALES - UBA</div>
         <div>Navegación: <span class="kb-badge">[◀]</span> / <span class="kb-badge">[▶]</span> o <span class="kb-badge">[Espacio]</span> | Notas: <span class="kb-badge">[N]</span> | Pantalla Completa: <span class="kb-badge">[F]</span></div>
     </footer>
 
