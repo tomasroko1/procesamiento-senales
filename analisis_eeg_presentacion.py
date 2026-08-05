@@ -267,7 +267,7 @@ def mineria_y_clustering_kmeans(pc1_open, pc1_closed, sfreq, win_len_sec=2.0):
     print(f" -> Adjusted Rand Index (ARI): {ari_score:.3f}")
     print(f" -> Concordancia de Partición Semántica: {acc * 100:.2f}%")
     print(f" -> Épocas con discrepancia (Ojos Cerrados): segundos {err_times} (micro-arousals)")
-    print(f" -> Matriz de Contingencia:\n{cm}")
+    print(f" -> Matriz de confusión:\n{cm}")
     
     return {
         'X': X,
@@ -322,7 +322,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     for idx, ch in enumerate(target_channels):
         ax1.plot(t_plot, data_open[idx, :len(t_plot)] * 1e6 + idx * offset_step, 
                  label=rf"{ch} (+{int(idx*offset_step)} $\mu$V)", color=colors_ch[idx % len(colors_ch)], lw=1.2)
-    ax1.set_title("Ojos Abiertos: Canales Occipitales (O1, Oz, O2)", fontweight='bold', color='#0f2942', fontsize=10.8)
+    ax1.set_title("A1 | Ojos Abiertos: Canales Occipitales (O1, Oz, O2)", fontweight='bold', color='#0f2942', fontsize=10.8)
     ax1.set_ylabel(r"Amplitud con Offset ($\mu$V)")
     ax1.legend(loc='upper right', framealpha=0.92, fontsize=8.5)
     ax1.set_ylim(-110, len(target_channels) * offset_step + 120)
@@ -333,7 +333,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     for idx, ch in enumerate(target_channels):
         ax2.plot(t_plot, data_closed[idx, :len(t_plot)] * 1e6 + idx * offset_step, 
                  label=rf"{ch} (+{int(idx*offset_step)} $\mu$V)", color=colors_ch[idx % len(colors_ch)], lw=1.2)
-    ax2.set_title("Ojos Cerrados: Canales Occipitales (Ritmo Alfa)", fontweight='bold', color='#0f2942', fontsize=10.8)
+    ax2.set_title("A2 | Ojos Cerrados: Canales Occipitales (Ritmo Alfa)", fontweight='bold', color='#0f2942', fontsize=10.8)
     ax2.legend(loc='upper right', framealpha=0.92, fontsize=8.5)
     ax2.set_ylim(-110, len(target_channels) * offset_step + 120)
     ax2.set_xlim(0, 6)
@@ -386,7 +386,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     # Panel 3: PC1 Abiertos
     ax3 = fig1.add_subplot(gs[1, 0])
     ax3.plot(t_plot, pc1_open[:len(t_plot)] * 1e6, color='#0284c7', lw=1.3)
-    ax3.set_title(r"$\mathrm{PC}_1$ Espacial - Ojos Abiertos (Desincronización Visual)", fontsize=10.2, fontweight='bold', color='#1e293b')
+    ax3.set_title(r"B1 | $\mathrm{PC}_1$ Espacial - Ojos Abiertos (Desincronización Visual)", fontsize=10.2, fontweight='bold', color='#1e293b')
     ax3.set_xlabel("Tiempo (s)")
     ax3.set_ylabel(r"$\mathrm{PC}_1\ (\mu\mathrm{V}\ \mathrm{ponderados})$")
     ax3.set_ylim(-ylim_unified, ylim_unified)
@@ -395,7 +395,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     # Panel 4: PC1 Cerrados
     ax4 = fig1.add_subplot(gs[1, 1])
     ax4.plot(t_plot, pc1_closed[:len(t_plot)] * 1e6, color='#b91c1c', lw=1.3)
-    ax4.set_title(r"$\mathrm{PC}_1$ Espacial - Ojos Cerrados (Oscilación Coherente $\approx 10\ \mathrm{Hz}$)", fontsize=10.2, fontweight='bold', color='#1e293b')
+    ax4.set_title(r"B2 | $\mathrm{PC}_1$ Espacial - Ojos Cerrados (Oscilación Coherente $\approx 10\ \mathrm{Hz}$)", fontsize=10.2, fontweight='bold', color='#1e293b')
     ax4.set_xlabel("Tiempo (s)")
     ax4.set_ylabel(r"$\mathrm{PC}_1\ (\mu\mathrm{V}\ \mathrm{ponderados})$")
     ax4.set_ylim(-ylim_unified, ylim_unified)
@@ -497,7 +497,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     print(f" -> Guardado: {f3_path}")
     
     # -------------------------------------------------------------------------
-    # Figura 4: K-Means con Frontera Voronoi, Centroides y Matriz de Contingencia
+    # Figura 4: K-Means con Frontera Voronoi, Centroides y Matriz de confusión
     # -------------------------------------------------------------------------
     fig4, (ax_clus, ax_cm) = plt.subplots(1, 2, figsize=(12, 5.2), dpi=160, gridspec_kw={'width_ratios': [1.35, 1]})
     X = clustering_res['X']
@@ -554,7 +554,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     ax_clus.set_ylim(0, y_max * 100)
     ax_clus.legend(loc='upper right', framealpha=0.92, fontsize=8.6)
     
-    # Matriz de Contingencia / Concordancia
+    # Matriz de confusión / Concordancia
     cm = clustering_res['confusion_matrix']
     cax = ax_cm.matshow(cm, cmap='Blues', alpha=0.85)
     
@@ -569,7 +569,7 @@ def generar_figuras(data_open, data_closed, target_channels, pc1_open, pc1_close
     ax_cm.set_yticklabels(['Ojos Abiertos', 'Ojos Cerrados'])
     ax_cm.set_xlabel("Partición Asignada por K-Means", fontweight='bold', color='#0f2942')
     ax_cm.set_ylabel("Condición Experimental (Ground Truth)", fontweight='bold', color='#0f2942')
-    ax_cm.set_title(f"Matriz de Contingencia (Mapeo Semántico Post-Hoc)\n[Concordancia: {clustering_res['accuracy']*100:.1f}% | 54 Épocas Disjuntas]", 
+    ax_cm.set_title(f"Matriz de confusión (Mapeo Semántico Post-Hoc)\n[Concordancia: {clustering_res['accuracy']*100:.1f}% | 54 Épocas Disjuntas]", 
                     fontweight='bold', pad=15, color='#0f2942', fontsize=10.5)
     
     plt.tight_layout()
@@ -1052,7 +1052,7 @@ def generar_presentacion_html(var_exp, ratio_berger, clustering_res, output_path
                 <div class="image-container" style="flex-direction: column; text-align: center; gap: 8px; background: #ffffff;">
                     <img src="{img4}" alt="Figura 5: Clustering K-Means">
                     <p style="font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin-top: 5px;">
-                        <strong>Figura 5:</strong> Agrupamiento no supervisado mediante K-Means. A: espacio de atributos relativas con fronteras Voronoi; B: matriz de contingencia que evalúa el desempeño biológico.
+                        <strong>Figura 5:</strong> Agrupamiento no supervisado mediante K-Means. A: espacio de atributos relativas con fronteras Voronoi; B: matriz de confusión que evalúa el desempeño biológico.
                     </p>
                 </div>
             </div>
